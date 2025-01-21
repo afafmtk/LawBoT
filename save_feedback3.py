@@ -1,13 +1,16 @@
 
 import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))  # Add the parent directory to the Python path
 import streamlit as st
 from streamlit_feedback import streamlit_feedback
 import csv
 import datetime
 import uuid
 from pathlib import Path
-from load_and_prepare2 import extract_text_simple, detect_pdf_format, extract_f_double
+
+from load_and_prepare2 import extract_text_simple, extract_text_simple, detect_pdf_format, extract_f_double
+from retrieve import query_rag
 from langchain.schema import Document
 import logging
 import os
