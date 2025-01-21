@@ -4,9 +4,7 @@ import os
 import fitz
 import spacy
 from spacy.lang.fr.stop_words import STOP_WORDS
-#import PyPDF2
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_ollama.llms import OllamaLLM
 from chatbot import PDFHandler
 
 nlp = spacy.load("fr_core_news_sm")
@@ -37,17 +35,6 @@ def extract_f_double(pdf_path):
     return '\n'.join(all_pages_text)
 
 
-"""
-def extract_text_simple(pdf_path):
-    with open(pdf_path, "rb") as file:
-        reader = PyPDF2.PdfReader(file)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text() + "\n"
-            textt = clean_text(text)
-    return textt
-"""
-
 def detect_pdf_format(pdf_path):
     try:
         doc = fitz.open(pdf_path)
@@ -73,21 +60,6 @@ def detect_pdf_format(pdf_path):
             return "simple"
     except Exception as e:
         return f"Erreur lors de la détection : {e}"
-    
-"""   
-def extract_f_double(pdf_path):
-    reader = PdfReader(pdf_path)
-    all_pages_text = []
-    
-    for page in reader.pages:
-        text = page.extract_text()
-        if text:  # Vérifie que le texte est valide
-            text = clean_text(text)
-            structured_text = analyze_page_structure(text)
-            all_pages_text.append(structured_text)
-
-    # Forcer la sortie en chaîne de caractères
-    return '\n'.join(all_pages_text)"""
 
 
 def clean_text(text):
