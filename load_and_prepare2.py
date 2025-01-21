@@ -2,12 +2,12 @@
 import re
 import os
 import fitz
-import spacy
+#import spacy
 from spacy.lang.fr.stop_words import STOP_WORDS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from chatbot import PDFHandler
 
-nlp = spacy.load("fr_core_news_sm")
+#nlp = spacy.load("fr_core_news_sm")
 
 
 def extract_text_simple(pdf_path):
@@ -76,16 +76,16 @@ def clean_text(text):
     # Normalisation 
     text = text.lower()
 
-    # Lemmatisation et suppression des mots vides avec spaCy
+    """# Lemmatisation et suppression des mots vides avec spaCy
     doc = nlp(text)
     cleaned_tokens = []
     for token in doc:
         if token.lemma_ not in STOP_WORDS and not token.is_punct:
             cleaned_tokens.append(token.lemma_)
 
-    cleaned_text = ' '.join(cleaned_tokens)
+    cleaned_text = ' '.join(cleaned_tokens)"""
 
-    return cleaned_text.strip()
+    return text.strip()
 
 
 def analyze_page_structure(text):
