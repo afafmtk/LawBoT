@@ -13,9 +13,5 @@ PyPDF2
 streamlit_feedback
 openai
 faiss-cpu
-<<<<<<< HEAD
-tiktok
-=======
 tiktoken
-openai
->>>>>>> b91b2427d6b95a25de3a94dd916e560b833f0458
+
