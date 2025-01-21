@@ -14,4 +14,6 @@ streamlit_feedback
 openai
 faiss-cpu
 tiktoken
+numpy==1.21.6 
+spacy==3.5.0
 
