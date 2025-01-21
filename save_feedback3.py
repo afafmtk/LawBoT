@@ -8,9 +8,7 @@ import csv
 import datetime
 import uuid
 from pathlib import Path
-from load_and_prepare import split_documents, add_to_chroma
 from load_and_prepare2 import extract_text_simple, extract_text_simple, detect_pdf_format, extract_f_double
-from retrieve import query_rag
 from langchain.schema import Document
 import logging
 import os
