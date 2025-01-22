@@ -135,7 +135,7 @@ def main():
 
     st.markdown("<h1 style='color: purple;'><i class='fas fa-balance-scale'></i> Juridique_Bot</h1>", unsafe_allow_html=True)
 
-    st.sidebar.image("static\logo_dxc.jpg", width=200)
+    st.sidebar.image("static\\logo_dxc.jpg", width=200)
     if st.sidebar.button("🔄 Nouveau fichier // Nouvelle conversation"):
         initialize_session_state()
         st.session_state.messages = []
