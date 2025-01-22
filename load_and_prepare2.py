@@ -3,7 +3,7 @@ import re
 import os
 import fitz
 #import spacy
-from spacy.lang.fr.stop_words import STOP_WORDS
+#from spacy.lang.fr.stop_words import STOP_WORDS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from chatbot import PDFHandler
 
