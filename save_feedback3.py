@@ -127,7 +127,7 @@ def fbcb(response):
 def main():
     load_dotenv()
     initialize_session_state()
-
+    st.set_page_config(layout="wide", page_title="LawGPT_DXC tech")
     st.markdown("""
     <head>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
