@@ -135,7 +135,7 @@ def main():
 
     st.markdown("<h1 style='color: purple;'><i class='fas fa-balance-scale'></i> Juridique_Bot</h1>", unsafe_allow_html=True)
 
-    
+    st.sidebar.image("static\logo_dxc.jpg", width=200)
     if st.sidebar.button("🔄 Nouveau fichier // Nouvelle conversation"):
         initialize_session_state()
         st.session_state.messages = []
@@ -146,7 +146,6 @@ def main():
         st.rerun()
 
     # Gestion des pdf
-    #uploaded_file = st.file_uploader("", type=["pdf"], label_visibility="collapsed")
     uploaded_file = st.file_uploader("Téléchargez un fichier PDF", type=["pdf"], label_visibility="collapsed")
     if uploaded_file is not None:
         if not st.session_state.file_processed:
