@@ -25,24 +25,32 @@ logger = logging.getLogger(__name__)
 def initialize_session_state():
     if 'session_id' not in st.session_state:
         st.session_state.session_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
     if 'messages' not in st.session_state:
         st.session_state.messages = []
-
     if 'feedback_history' not in st.session_state:
         st.session_state.feedback_history = []
-
     if 'fbk' not in st.session_state:
         st.session_state.fbk = str(uuid.uuid4())
-
     if 'file_processed' not in st.session_state:
         st.session_state.file_processed = False
-
     if 'conversation' not in st.session_state:
         st.session_state.conversation = None
-        
     if 'chat_history' not in st.session_state:
-        st.session_state.chat_history = []    
+        st.session_state.chat_history = []
+    if 'uploaded_file' not in st.session_state:
+        st.session_state.uploaded_file = None
+    if 'file_uploader_key' not in st.session_state:
+        st.session_state.file_uploader_key = 0
+
+def reset_conversation():
+    st.session_state.messages = []
+    st.session_state.feedback_history = []
+    st.session_state.file_processed = False
+    st.session_state.vectorstore = None
+    st.session_state.conversation = None
+    st.session_state.uploaded_file = None
+    # Incrémenter la clé pour forcer la réinitialisation du file uploader
+    st.session_state.file_uploader_key += 1  
 
 
 def save_uploaded_file(uploaded_file):
@@ -126,23 +134,20 @@ def fbcb(response):
 def main():
     load_dotenv()
     initialize_session_state()
-    st.set_page_config(layout="wide", page_title="LawGPT_DXC tech")
+    st.set_page_config(layout="wide", page_title="LAW_GPT DXC CDG ")
+    
     st.markdown("""
     <head>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     </head>
     """, unsafe_allow_html=True)
 
-    st.markdown("<h1 style='color: purple;'><i class='fas fa-balance-scale'></i> Juridique_Bot</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='color: purple;'><i class='fas fa-balance-scale'></i> LAWGPT </h1>", unsafe_allow_html=True)
 
-    st.sidebar.image("static/logo_dxc.jpg", width=200)
-    if st.sidebar.button("🔄 Nouveau fichier // Nouvelle conversation"):
-        initialize_session_state()
-        st.session_state.messages = []
-        st.session_state.feedback_history = []
-        st.session_state.file_processed = False
-        st.session_state.vectorstore = None  
-        st.session_state.conversation = None  
+    st.sidebar.image("static/logo_dxc.jpg", width=600)
+    
+    if st.sidebar.button("🔄 Nouvelle conversation"):
+        reset_conversation()
         st.rerun()
 
     # Gestion des pdf
