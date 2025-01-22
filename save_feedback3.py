@@ -49,7 +49,6 @@ def reset_conversation():
     st.session_state.vectorstore = None
     st.session_state.conversation = None
     st.session_state.uploaded_file = None
-    # Incrémenter la clé pour forcer la réinitialisation du file uploader
     st.session_state.file_uploader_key += 1  
 
 
@@ -150,8 +149,12 @@ def main():
         reset_conversation()
         st.rerun()
 
-    # Gestion des pdf
-    uploaded_file = st.file_uploader("Téléchargez un fichier PDF", type=["pdf"], label_visibility="collapsed")
+     
+    uploaded_file = st.file_uploader(
+        "Téléchargez un fichier PDF",type=["pdf"],label_visibility="collapsed",
+        key=f"file_uploader_{st.session_state.file_uploader_key}"
+    )
+    
     if uploaded_file is not None:
         if not st.session_state.file_processed:
             st.success("✅ Fichier téléchargé avec succès!")
