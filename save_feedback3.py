@@ -70,7 +70,7 @@ def process_pdf_file(file_path):
     """
     # Détecter le format du PDF
     format_type = detect_pdf_format(file_path)
-    logger.info(f"📝 Format détecté : {format_type}")
+    logger.info(f"📝 Format detected. : {format_type}")
 
     # Extraire le texte selon le format détecté
     if format_type == "double":
@@ -79,10 +79,10 @@ def process_pdf_file(file_path):
         text = extract_text_simple(file_path)
 
     text_chunks = TextChunkHandler.get_text_chunks(text)
-    logger.info(f" {len(text_chunks)} chunks générés à partir du texte.")
+    logger.info(f" {len(text_chunks)} Chunks generated from the text.")
 
     vectorstore = VectorStoreHandler.get_vectorstore(text_chunks)
-    logger.info(" Magasin de vecteurs créé avec succès.")
+    logger.info(" Vectors successfully created.")
 
     return vectorstore
 
@@ -112,107 +112,102 @@ def save_feedback():
 # Gestion des feedbacks
 def fbcb(response):
     if not st.session_state.feedback_history:
-        st.warning("Aucune interaction disponible pour ajouter un feedback.")
+        st.warning("No interaction available to add feedback.")
         return
 
     last_entry = st.session_state.feedback_history[-1]
     #Structuration du feedback
     feedback = {
         "score": response.get("score"),
-        "valeur": "Positif" if response.get("score") == "👍" else ("Négatif" if response.get("score") == "👎" else "NaN"),
+        "valeur": "Positive" if response.get("score") == "👍" else ("Négative" if response.get("score") == "👎" else "NaN"),
         "text": response.get("text", "").strip() if response.get("text") else "NAN"
     }
 
     last_entry.update({'feedback': feedback})
     save_feedback()
-    st.success("Feedback enregistré avec succès !") #confirmation que tous est bon
-
-
-
+    st.success("Feedback successfully recorded!") 
 
 def main():
-    load_dotenv()
-    initialize_session_state()
-    st.set_page_config(layout="wide", page_title="LAW_GPT DXC CDG ")
-    
-    st.markdown("""
-    <head>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    </head>
-    """, unsafe_allow_html=True)
+    try:
+        load_dotenv()
+        initialize_session_state()
+        st.set_page_config(layout="wide", page_title="LAW_GPT DXC CDG")
+        
+        st.markdown("""
+        <head>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+        </head>
+        """, unsafe_allow_html=True)
 
-    st.markdown("<h1 style='color: purple;'><i class='fas fa-balance-scale'></i> LAWGPT </h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='color: purple;'><i class='fas fa-balance-scale'></i> LAWGPT </h1>", unsafe_allow_html=True)
 
-    st.sidebar.image("static/logo_dxc.jpg", width=600)
-    
-    if st.sidebar.button("🔄 Nouvelle conversation"):
-        reset_conversation()
-        st.rerun()
+        st.sidebar.image("static/logo_dxc.jpg", width=600)
+        
+        if st.sidebar.button("🔄 New conversation"):
+            reset_conversation()
+            st.rerun()
 
-     
-    uploaded_file = st.file_uploader(
-        "Téléchargez un fichier PDF",type=["pdf"],label_visibility="collapsed",
-        key=f"file_uploader_{st.session_state.file_uploader_key}"
-    )
-    
-    if uploaded_file is not None:
-        if not st.session_state.file_processed:
-            st.success("✅ Fichier téléchargé avec succès!")
-            file_path = save_uploaded_file(uploaded_file)
-
-            with st.spinner("Traitement du fichier PDF en cours..."):
-                
-                vectorstore = process_pdf_file(file_path)
-                st.session_state.vectorstore = vectorstore
-                st.session_state["messages"].append({"role": "assistant", "content": "Fichier traité avec succès !"})
-                st.session_state.file_processed = True
-        else:
-            st.info("⚠️ Le fichier a déjà été traité.")
-
-    
-    for msg in st.session_state.get("messages", []):
-        st.chat_message(msg["role"]).write(msg["content"])
-
-
-    if user_input := st.chat_input("Posez votre question juridique..."):
-        if not user_input.strip():
-            st.warning("❌ Veuillez poser une question valide.")
-            return
-
-        st.session_state["messages"].append({"role": "user", "content": user_input})
-        st.chat_message("user").write(user_input)
-
-        with st.spinner("Recherche en cours..."):
-            if st.session_state.vectorstore is None:
-                result = "⚠️ Aucun fichier n'a été traité pour le moment. Veuillez télécharger un fichier pour commencer."
-            else:
-                if st.session_state.conversation is None:
-                    st.session_state.conversation = ConversationChainHandler.get_conversation_chain(
-                        st.session_state.vectorstore
-                    )
-                
-               
-                result = st.session_state.conversation.run(user_input)
-
-        st.session_state["messages"].append({"role": "assistant", "content": result})
-        st.chat_message("assistant").write(result)
-
-        st.session_state.feedback_history.append({
-            'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'Session_ID': st.session_state.session_id,
-            'Question': user_input,
-            'Réponse': result,
-        })
-
-    if len(st.session_state.feedback_history) > 0:
-        feedback_response = streamlit_feedback(
-            feedback_type="thumbs",
-            optional_text_label="[Optionnel] Expliquez votre choix",
-            key=f"fb_{len(st.session_state.feedback_history)}",
+        uploaded_file = st.file_uploader(
+            "Download a PDF file", type=["pdf"], label_visibility="collapsed",
+            key=f"file_uploader_{st.session_state.file_uploader_key}"
         )
-        if feedback_response:
-            fbcb(feedback_response)
+        
+        if uploaded_file is not None:
+            if not st.session_state.file_processed:
+                st.success("✅ File downloaded successfully!")
+                file_path = save_uploaded_file(uploaded_file)
 
+                with st.spinner("Processing PDF file..."):
+                    vectorstore = process_pdf_file(file_path)
+                    st.session_state.vectorstore = vectorstore
+                    st.session_state["messages"].append({"role": "assistant", "content": "File processed successfully!"})
+                    st.session_state.file_processed = True
+            else:
+                st.info("⚠️The file has already been processed.")
+
+        for msg in st.session_state.get("messages", []):
+            st.chat_message(msg["role"]).write(msg["content"])
+
+        if user_input := st.chat_input("Ask your legal question..."):
+            if not user_input.strip():
+                st.warning("❌ Please enter a valid question.")
+                return
+
+            st.session_state["messages"].append({"role": "user", "content": user_input})
+            st.chat_message("user").write(user_input)
+
+            with st.spinner("Searching in progress..."):
+                if st.session_state.vectorstore is None:
+                    result = "⚠️ No file has been processed yet. Please upload a file to get started."
+                else:
+                    if st.session_state.conversation is None:
+                        st.session_state.conversation = ConversationChainHandler.get_conversation_chain(
+                            st.session_state.vectorstore
+                        )
+                    result = st.session_state.conversation.run(user_input)
+
+            st.session_state["messages"].append({"role": "assistant", "content": result})
+            st.chat_message("assistant").write(result)
+
+            st.session_state.feedback_history.append({
+                'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'Session_ID': st.session_state.session_id,
+                'Question': user_input,
+                'Réponse': result,
+            })
+
+        if len(st.session_state.feedback_history) > 0:
+            feedback_response = streamlit_feedback(
+                feedback_type="thumbs",
+                optional_text_label="[Optional] Explain your choice.",
+                key=f"fb_{len(st.session_state.feedback_history)}",
+            )
+            if feedback_response:
+                fbcb(feedback_response)
+
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {str(e)}")
+        st.error("⚠️ An unexpected error occurred. Please try again later.")
 
 if __name__ == "__main__":
     main()
