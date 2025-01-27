@@ -160,7 +160,9 @@ def main():
                 with st.spinner("Processing PDF file..."):
                     vectorstore = process_pdf_file(file_path)
                     st.session_state.vectorstore = vectorstore
-                    st.session_state["messages"].append({"role": "assistant", "content": "File processed successfully!"})
+                    st.session_state["messages"].append({"role": "assistant", "content": "Bonjour, je suis votre chatbot juridique ! 😊 "
+                                                                                        "Je suis là pour répondre à vos questions juridiques et vous guider dans la compréhension des informations juridiques. "
+                                                                                        "N'hésitez pas à poser vos questions ou à explorer mes fonctionnalités !"})
                     st.session_state.file_processed = True
             else:
                 st.info("⚠️The file has already been processed.")
@@ -207,7 +209,8 @@ def main():
 
     except Exception as e:
         logger.error(f"An unexpected error occurred: {str(e)}")
-        st.error("⚠️ An unexpected error occurred. Please try again later.")
+        st.error("⚠️ An unexpected error occurred. Please get in touch with our AI team to solve the issue. We are grateful for your understanding.")
+
 
 if __name__ == "__main__":
     main()
