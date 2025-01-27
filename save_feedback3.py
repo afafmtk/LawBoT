@@ -160,9 +160,7 @@ def main():
                 with st.spinner("Processing PDF file..."):
                     vectorstore = process_pdf_file(file_path)
                     st.session_state.vectorstore = vectorstore
-                    st.session_state["messages"].append({"role": "assistant", "content": "Bonjour, je suis votre chatbot juridique ! 😊 "
-                                                                                        "Je suis là pour répondre à vos questions juridiques et vous guider dans la compréhension des informations juridiques. "
-                                                                                        "N'hésitez pas à poser vos questions ou à explorer mes fonctionnalités !"})
+                    st.session_state["messages"].append({"role": "assistant", "content": "Hello, I am your legal chatbot! 😊" "I am here to answer your legal questions and guide you in understanding legal information." "Don't hesitate to ask your questions or explore my features!"})
                     st.session_state.file_processed = True
             else:
                 st.info("⚠️The file has already been processed.")
