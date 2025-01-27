@@ -5,10 +5,10 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from dotenv import load_dotenv
 
-from langchain_openai.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
-from langchain_openai.chat_models import ChatOpenAI
-from langchain.llms import HuggingFaceHub
+from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.chat_models import ChatOpenAI
+from langchain_community.llms import HuggingFaceHub
 load_dotenv()
 
 class PDFHandler:
@@ -27,8 +27,8 @@ class TextChunkHandler:
     def get_text_chunks(text):
         text_splitter = CharacterTextSplitter(
             separator="\n",
-            chunk_size=500,
-            chunk_overlap=100,
+            chunk_size=1000,
+            chunk_overlap=200,
             length_function=len
         )
         chunks = text_splitter.split_text(text)
@@ -60,7 +60,7 @@ class ConversationChainHandler:
 class UserInputHandler:
     @staticmethod
     def handle_userinput(user_question):
-        response = st.session_state.conversation.invoke({'question': user_question})
+        response = st.session_state.conversation({'question': user_question})
         st.session_state.chat_history = response['chat_history']
 
         for i, message in enumerate(st.session_state.chat_history):
