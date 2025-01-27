@@ -154,13 +154,13 @@ def main():
         
         if uploaded_file is not None:
             if not st.session_state.file_processed:
-                st.success("✅ File downloaded successfully!")
+                st.success("Hello, I am your legal chatbot! 😊" "I am here to answer your legal questions and guide you in understanding legal information." "Don't hesitate to ask your questions or explore my features!")
                 file_path = save_uploaded_file(uploaded_file)
 
                 with st.spinner("Processing PDF file..."):
                     vectorstore = process_pdf_file(file_path)
                     st.session_state.vectorstore = vectorstore
-                    st.session_state["messages"].append({"role": "assistant", "content": "Hello, I am your legal chatbot! 😊" "I am here to answer your legal questions and guide you in understanding legal information." "Don't hesitate to ask your questions or explore my features!"})
+                    st.session_state["messages"].append({"role": "assistant", "content": "File processed successfully!"})
                     st.session_state.file_processed = True
             else:
                 st.info("⚠️The file has already been processed.")
