@@ -16,3 +16,7 @@ openai
 faiss-cpu
 tiktoken
 PyMuPDF==1.19.0
+<<<<<<< HEAD
+=======
+
+>>>>>>> 593f4c1ef25ad94745aa38af47a3a621e3da1059
