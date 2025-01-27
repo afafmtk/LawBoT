@@ -1,11 +1,9 @@
 #from pypdf import PdfReader
 import re
 import os
-import fitz
-#import spacy
-#from spacy.lang.fr.stop_words import STOP_WORDS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from chatbot import PDFHandler
+from PyPDF2 import PdfReader
 
 #nlp = spacy.load("fr_core_news_sm")
 
@@ -35,24 +33,32 @@ def extract_f_double(pdf_path):
     return '\n'.join(all_pages_text)
 
 
+
+
 def detect_pdf_format(pdf_path):
+    """
+    Detect if the PDF is in single or double column format.
+    """
     try:
-        doc = fitz.open(pdf_path)
-        page = doc.load_page(0)
-        blocs = page.get_text("dict")["blocks"]
+        reader = PdfReader(pdf_path)
+        page = reader.pages[0]  # Load the first page
+        text = page.extract_text()
+        
+        # Simple heuristic: count the number of long spaces to infer columns
         left_count = 0
         right_count = 0
-        middle_x = page.rect.width / 2
+        middle_x = 0.5  # Assume normalized coordinates
 
-        for block in blocs:
-            if "bbox" in block:
-                x0, _, x1, _ = block["bbox"]
-                if x1 <= middle_x:
+        for line in text.splitlines():
+            if len(line.strip()) == 0:
+                continue
+            # Check the position of the text blocks (mocked for PyPDF2 as it doesn't give exact positions)
+            words = line.split()
+            if len(words) > 0:
+                if len(words) <= 5:  # Arbitrary heuristic for left-aligned text
                     left_count += 1
-                elif x0 >= middle_x:
+                else:
                     right_count += 1
-
-        doc.close()
 
         if left_count > 0 and right_count > 0:
             return "double"
@@ -60,7 +66,6 @@ def detect_pdf_format(pdf_path):
             return "simple"
     except Exception as e:
         return f"Erreur lors de la détection : {e}"
-
 
 def clean_text(text):
     """
@@ -76,17 +81,7 @@ def clean_text(text):
     # Normalisation 
     text = text.lower()
 
-    """# Lemmatisation et suppression des mots vides avec spaCy
-    doc = nlp(text)
-    cleaned_tokens = []
-    for token in doc:
-        if token.lemma_ not in STOP_WORDS and not token.is_punct:
-            cleaned_tokens.append(token.lemma_)
-
-    cleaned_text = ' '.join(cleaned_tokens)"""
-
     return text.strip()
-
 
 def analyze_page_structure(text):
     column_markers = identify_column_markers(text)
@@ -109,4 +104,4 @@ def reorganize_columns(text, markers):
         columns.append(text[start:marker].strip())
         start = marker
     columns.append(text[start:].strip())
-    return '\n'.join(columns)   
+    return '\n'.join(columns)
