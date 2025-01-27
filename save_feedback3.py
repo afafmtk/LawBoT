@@ -126,88 +126,81 @@ def fbcb(response):
     last_entry.update({'feedback': feedback})
     save_feedback()
     st.success("Feedback successfully recorded!") 
-
 def main():
-    try:
-        load_dotenv()
-        initialize_session_state()
-        st.set_page_config(layout="wide", page_title="LAW_GPT DXC CDG")
-        
-        st.markdown("""
-        <head>
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-        </head>
-        """, unsafe_allow_html=True)
+    load_dotenv()
+    initialize_session_state()
+    st.set_page_config(layout="wide", page_title="LAW_GPT DXC CDG")
+    
+    st.markdown("""
+    <head>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    </head>
+    """, unsafe_allow_html=True)
 
-        st.markdown("<h1 style='color: purple;'><i class='fas fa-balance-scale'></i> LAWGPT </h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='color: purple;'><i class='fas fa-balance-scale'></i> LAWGPT </h1>", unsafe_allow_html=True)
 
-        st.sidebar.image("static/logo_dxc.jpg", width=600)
-        
-        if st.sidebar.button("🔄 New conversation"):
-            reset_conversation()
-            st.rerun()
+    st.sidebar.image("static/logo_dxc.jpg", width=600)
+    
+    if st.sidebar.button("🔄 New conversation"):
+        reset_conversation()
+        st.rerun()
 
-        uploaded_file = st.file_uploader(
-            "Download a PDF file", type=["pdf"], label_visibility="collapsed",
-            key=f"file_uploader_{st.session_state.file_uploader_key}"
-        )
-        
-        if uploaded_file is not None:
-            if not st.session_state.file_processed:
-                file_path = save_uploaded_file(uploaded_file)
+    uploaded_file = st.file_uploader(
+        "Download a PDF file", type=["pdf"], label_visibility="collapsed",
+        key=f"file_uploader_{st.session_state.file_uploader_key}"
+    )
+    
+    if uploaded_file is not None:
+        if not st.session_state.file_processed:
+            file_path = save_uploaded_file(uploaded_file)
 
-                with st.spinner("Processing PDF file..."):
-                    vectorstore = process_pdf_file(file_path)
-                    st.session_state.vectorstore = vectorstore
-                    st.session_state["messages"].append({"role": "assistant", "content": "Hello, I am your legal chatbot! 😊 . I am here to answer your legal questions and guide you in understanding legal information. Don't hesitate to ask your questions or explore my features!"})
-                    st.session_state.file_processed = True
+            with st.spinner("Processing PDF file..."):
+                vectorstore = process_pdf_file(file_path)
+                st.session_state.vectorstore = vectorstore
+                st.session_state["messages"].append({"role": "assistant", "content": "Hello, I am your legal chatbot! 😊 . I am here to answer your legal questions and guide you in understanding legal information. Don't hesitate to ask your questions or explore my features!"})
+                st.session_state.file_processed = True
+        else:
+            st.info("⚠️The file has already been processed.")
+
+    for msg in st.session_state.get("messages", []):
+        st.chat_message(msg["role"]).write(msg["content"])
+
+    if user_input := st.chat_input("Ask your legal question..."):
+        if not user_input.strip():
+            st.warning("❌ Please enter a valid question.")
+            return
+
+        st.session_state["messages"].append({"role": "user", "content": user_input})
+        st.chat_message("user").write(user_input)
+
+        with st.spinner("Searching in progress..."):
+            if st.session_state.vectorstore is None:
+                result = "⚠️ No file has been processed yet. Please upload a file to get started."
             else:
-                st.info("⚠️The file has already been processed.")
+                if st.session_state.conversation is None:
+                    st.session_state.conversation = ConversationChainHandler.get_conversation_chain(
+                        st.session_state.vectorstore
+                    )
+                result = st.session_state.conversation.run(user_input)
 
-        for msg in st.session_state.get("messages", []):
-            st.chat_message(msg["role"]).write(msg["content"])
+        st.session_state["messages"].append({"role": "assistant", "content": result})
+        st.chat_message("assistant").write(result)
 
-        if user_input := st.chat_input("Ask your legal question..."):
-            if not user_input.strip():
-                st.warning("❌ Please enter a valid question.")
-                return
+        st.session_state.feedback_history.append({
+            'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'Session_ID': st.session_state.session_id,
+            'Question': user_input,
+            'Réponse': result,
+        })
 
-            st.session_state["messages"].append({"role": "user", "content": user_input})
-            st.chat_message("user").write(user_input)
-
-            with st.spinner("Searching in progress..."):
-                if st.session_state.vectorstore is None:
-                    result = "⚠️ No file has been processed yet. Please upload a file to get started."
-                else:
-                    if st.session_state.conversation is None:
-                        st.session_state.conversation = ConversationChainHandler.get_conversation_chain(
-                            st.session_state.vectorstore
-                        )
-                    result = st.session_state.conversation.run(user_input)
-
-            st.session_state["messages"].append({"role": "assistant", "content": result})
-            st.chat_message("assistant").write(result)
-
-            st.session_state.feedback_history.append({
-                'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'Session_ID': st.session_state.session_id,
-                'Question': user_input,
-                'Réponse': result,
-            })
-
-        if len(st.session_state.feedback_history) > 0:
-            feedback_response = streamlit_feedback(
-                feedback_type="thumbs",
-                optional_text_label="[Optional] Explain your choice.",
-                key=f"fb_{len(st.session_state.feedback_history)}",
-            )
-            if feedback_response:
-                fbcb(feedback_response)
-
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {str(e)}")
-        st.error("⚠️ An unexpected error occurred. Please get in touch with our AI team to solve the issue. We are grateful for your understanding.")
-
+    if len(st.session_state.feedback_history) > 0:
+        feedback_response = streamlit_feedback(
+            feedback_type="thumbs",
+            optional_text_label="[Optional] Explain your choice.",
+            key=f"fb_{len(st.session_state.feedback_history)}",
+        )
+        if feedback_response:
+            fbcb(feedback_response)
 
 if __name__ == "__main__":
     main()
