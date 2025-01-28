@@ -181,7 +181,7 @@ def main():
                     st.session_state.conversation = ConversationChainHandler.get_conversation_chain(
                         st.session_state.vectorstore
                     )
-                result = st.session_state.conversation.run({"question": user_input})
+                result = st.session_state.conversation.run(user_input)
 
         st.session_state["messages"].append({"role": "assistant", "content": result})
         st.chat_message("assistant").write(result)

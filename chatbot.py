@@ -57,7 +57,7 @@ class ConversationChainHandler:
         )
         return conversation_chain
 
-
+"""
 class UserInputHandler:
     @staticmethod
     def handle_userinput(user_question):
@@ -71,3 +71,4 @@ class UserInputHandler:
             else:
                 st.write(bot_template.replace(
                     "{{MSG}}", message.content), unsafe_allow_html=True)
+"""
