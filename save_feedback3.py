@@ -126,47 +126,37 @@ def fbcb(response):
     last_entry.update({'feedback': feedback})
     save_feedback()
     st.success("Feedback successfully recorded!") 
+
+
+    
 def main():
     load_dotenv()
     initialize_session_state()
     st.set_page_config(layout="wide", page_title="LAW_GPT DXC CDG")
 
-    st.markdown("""
-    <head>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    </head>
-    """, unsafe_allow_html=True)
-
     st.markdown("<h1 style='color: purple;'><i class='fas fa-balance-scale'></i> LAWGPT </h1>", unsafe_allow_html=True)
-
     st.sidebar.image("static/logo_dxc.jpg", width=600)
-    
-  
+
+    # Reset conversation
     if st.sidebar.button("🔄 New conversation"):
         reset_conversation()
         st.rerun()
 
-    uploaded_file = st.file_uploader(
-        "Upload a PDF file", type=["pdf"], label_visibility="collapsed",
-        key=f"file_uploader_{st.session_state.file_uploader_key}"
-    )
-
+    # File upload
+    uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"], label_visibility="collapsed",
+                                     key=f"file_uploader_{st.session_state.file_uploader_key}")
     if uploaded_file is not None:
         if not st.session_state.file_processed:
             file_path = save_uploaded_file(uploaded_file)
-
             with st.spinner("Processing PDF file..."):
                 vectorstore = process_pdf_file(file_path)
                 st.session_state.vectorstore = vectorstore
-                st.session_state["messages"].append({
-                    "role": "assistant",
-                    "content": "Hello, I am your legal chatbot! 😊 I am here to answer your legal questions and guide you in understanding legal information. Don't hesitate to ask your questions or explore my features!"
-                })
+                st.session_state.messages.append({"role": "assistant", "content": "Hello, I am your legal chatbot! 😊"})
                 st.session_state.file_processed = True
         else:
             st.info("⚠️ The file has already been processed.")
 
-    # Display chat history
+    # Display previous messages
     for msg in st.session_state.get("messages", []):
         st.chat_message(msg["role"]).write(msg["content"])
 
@@ -176,29 +166,32 @@ def main():
             st.warning("❌ Please enter a valid question.")
             return
 
-        # Add user input to messages
-        st.session_state["messages"].append({"role": "user", "content": user_input})
+        # Ensure conversation and vectorstore are initialized
+        if st.session_state.vectorstore is None:
+            st.warning("⚠️ Vectorstore is not initialized. Please process a file first.")
+            return
+
+        if st.session_state.conversation is None:
+            st.session_state.conversation = ConversationChainHandler.get_conversation_chain(
+                st.session_state.vectorstore
+            )
+
+        # Add user message to history
+        st.session_state.messages.append({"role": "user", "content": user_input})
         st.chat_message("user").write(user_input)
 
-        # Process user input
-        with st.spinner("Searching in progress..."):
-            if st.session_state.vectorstore is None:
-                result = "⚠️ No file has been processed yet. Please upload a file to get started."
-            else:
-                # Initialize conversation chain if not already done
-                if st.session_state.conversation is None:
-                    st.session_state.conversation = ConversationChainHandler.get_conversation_chain(
-                        st.session_state.vectorstore
-                    )
-                
-                # Pass user input and chat history to the conversation chain
-                result = st.session_state.conversation.run({
-                    'question': user_input,
-                    'chat_history_1': st.session_state.get('chat_history_1', [])
-                })
+        # Run conversation chain
+        try:
+            result = st.session_state.conversation.run({
+                'question': user_input,
+                'chat_history_1': st.session_state.get('chat_history_1', [])
+            })
+        except ValueError as e:
+            st.error(f"An error occurred: {e}")
+            return
 
-        # Add assistant response to messages
-        st.session_state["messages"].append({"role": "assistant", "content": result})
+        # Add assistant response to history
+        st.session_state.messages.append({"role": "assistant", "content": result})
         st.chat_message("assistant").write(result)
 
         # Update chat history
