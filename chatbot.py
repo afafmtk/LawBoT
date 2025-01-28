@@ -27,8 +27,8 @@ class TextChunkHandler:
     def get_text_chunks(text):
         text_splitter = CharacterTextSplitter(
             separator="\n",
-            chunk_size=1000,
-            chunk_overlap=200,
+            chunk_size=500,
+            chunk_overlap=100,
             length_function=len
         )
         chunks = text_splitter.split_text(text)
@@ -47,9 +47,9 @@ class ConversationChainHandler:
     @staticmethod
     def get_conversation_chain(vectorstore):
         llm = ChatOpenAI()
-        memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True, k=10)
+        memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True, k=8)
         #Gardez uniquement les 10 derniers échanges avec l'utilisateur
-        retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 5})
+        retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
         # pour Limiter le nombre de chunks récupérés
         conversation_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
