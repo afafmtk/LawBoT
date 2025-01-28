@@ -8,7 +8,6 @@ import csv
 import datetime
 import uuid
 from pathlib import Path
-
 from load_and_prepare2 import extract_text_simple, extract_text_simple, detect_pdf_format, extract_f_double
 from langchain.schema import Document
 import logging
@@ -16,24 +15,29 @@ import os
 from time import time
 from chatbot import  TextChunkHandler, VectorStoreHandler, ConversationChainHandler
 from dotenv import load_dotenv
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 def initialize_session_state():
+    """
+    Initialise les variables de session nécessaires pour Streamlit.
+    """
     if 'session_id' not in st.session_state:
         st.session_state.session_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     if 'messages' not in st.session_state:
         st.session_state.messages = []
     if 'feedback_history' not in st.session_state:
         st.session_state.feedback_history = []
-    if 'fbk' not in st.session_state:
-        st.session_state.fbk = str(uuid.uuid4())
     if 'file_processed' not in st.session_state:
         st.session_state.file_processed = False
-    if 'conversation' not in st.session_state:
-        st.session_state.conversation = None
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []  # Historique des conversations
     if 'uploaded_file' not in st.session_state:
@@ -41,15 +45,25 @@ def initialize_session_state():
     if 'file_uploader_key' not in st.session_state:
         st.session_state.file_uploader_key = 0
 
+
 def reset_conversation():
+    """
+    Réinitialise l'état de la session pour démarrer une nouvelle conversation,
+    tout en sauvegardant les feedbacks et en envoyant un email si nécessaire.
+    """
+    if len(st.session_state.feedback_history) > 0:
+        feedback_file = save_feedback()
+        recipient_email = "afafmatouk2001@gmail.com"
+        send_email_with_csv(recipient_email, feedback_file)
+
+        st.success(f"Email envoyé avec succès au client avec le fichier {feedback_file.name} !")
     st.session_state.messages = []
     st.session_state.feedback_history = []
     st.session_state.file_processed = False
-    st.session_state.vectorstore = None
-    st.session_state.conversation = None
-    st.session_state.chat_history = []  # Réinitialisation de l'historique
+    st.session_state.chat_history = []
     st.session_state.uploaded_file = None
     st.session_state.file_uploader_key += 1
+
 
 def save_uploaded_file(uploaded_file):
     data_dir = os.path.join(os.getcwd(), 'data')
@@ -86,19 +100,54 @@ def process_pdf_file(file_path):
     return vectorstore
 
 
-# Sauvegarde du feedback in CSV file
 def save_feedback():
+    """
+    Sauvegarde les feedbacks dans un fichier CSV spécifique à la session.
+    """
     feedback_dir = Path('feedbacks')
-    feedback_dir.mkdir(exist_ok=True)
-    filepath = feedback_dir / f'{st.session_state.session_id}.csv'
+    feedback_dir.mkdir(exist_ok=True)  # Crée le dossier si nécessaire
 
+    filepath = feedback_dir / f'{st.session_state.session_id}.csv'
     file_exists = filepath.exists()
 
-    with open(filepath, mode='a', newline='', encoding='utf-8') as file:
+    with open(filepath, mode='w' if not file_exists else 'a', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
+
+        # Ajouter l'en-tête si le fichier est nouveau
         if not file_exists:
             writer.writerow(["Question", "Answer", "Score", "Valeur", "Commentaire"])
 
+        # Écrire les feedbacks dans le fichier
+        for feedback in st.session_state.feedback_history:
+            writer.writerow([
+                feedback.get('Question', ''),
+                feedback.get('Réponse', ''),
+                feedback.get('feedback', {}).get('score', ''),
+                feedback.get('feedback', {}).get('valeur', ''),
+                feedback.get('feedback', {}).get('text', '')
+            ])
+
+    return filepath  # Retourne le chemin du fichier pour d'autres usages (e.g., email)
+
+
+def save_feedback():
+    """
+    Sauvegarde les feedbacks dans un fichier CSV spécifique à la session.
+    """
+    feedback_dir = Path('feedbacks')
+    feedback_dir.mkdir(exist_ok=True)  # Crée le dossier si nécessaire
+
+    filepath = feedback_dir / f'{st.session_state.session_id}.csv'
+    file_exists = filepath.exists()
+
+    with open(filepath, mode='w' if not file_exists else 'a', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+
+        # Ajouter l'en-tête si le fichier est nouveau
+        if not file_exists:
+            writer.writerow(["Question", "Answer", "Score", "Valeur", "Commentaire"])
+
+        # Écrire les feedbacks dans le fichier
         for feedback in st.session_state.feedback_history:
             writer.writerow([
                 feedback['Question'],
@@ -108,23 +157,86 @@ def save_feedback():
                 feedback['feedback']['text']
             ])
 
-# Gestion des feedbacks
+    return filepath  # Retourne le chemin du fichier pour d'autres usages (e.g., email)
+
 def fbcb(response):
+    """
+    Ajoute un feedback structuré à l'historique.
+    """
     if not st.session_state.feedback_history:
         st.warning("No interaction available to add feedback.")
         return
 
+    # Structuration du feedback
     last_entry = st.session_state.feedback_history[-1]
-    #Structuration du feedback
     feedback = {
         "score": response.get("score"),
         "valeur": "Positive" if response.get("score") == "👍" else ("Négative" if response.get("score") == "👎" else "NaN"),
         "text": response.get("text", "").strip() if response.get("text") else "NAN"
     }
 
+    # Mise à jour du dernier feedback
     last_entry.update({'feedback': feedback})
-    save_feedback()
-    st.success("Feedback successfully recorded!") 
+    st.success("Feedback successfully added to history!")
+
+
+def send_email_with_csv(recipient_email, filepath):
+    """
+    Envoie un email avec le fichier CSV en pièce jointe.
+    Args:
+        recipient_email (str): L'adresse email du destinataire.
+        filepath (Path): Chemin vers le fichier CSV à envoyer.
+    """
+    sender_email = "afaf83542@gmail.com"  # Remplacez par votre email
+    sender_password = "gwsh qfmz shxb cdam"  # Mot de passe d'application Gmail
+
+    if not filepath.exists():
+        print(f"Le fichier {filepath} n'existe pas. Email non envoyé.")
+        return
+
+    # Configuration de l'e-mail
+    subject = f"Feedbacks de votre session {filepath.stem}"
+    body = "Veuillez trouver ci-joint le fichier contenant les feedbacks de votre session."
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = recipient_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    # Ajouter le fichier CSV en pièce jointe
+    with open(filepath, 'rb') as file:
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(file.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename={filepath.name}',
+        )
+        msg.attach(part)
+
+    # Envoi de l’e-mail via SMTP
+    try:
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+        print(f"Email envoyé avec succès à {recipient_email} avec le fichier {filepath.name} !")
+    except Exception as e:
+        print(f"Erreur lors de l'envoi de l'email : {e}")
+
+
+def send_feedback_email():
+    """
+    Envoie un e-mail avec le fichier CSV de la session courante.
+    """
+    recipient_email = "afafmatouk2001@gmail.com"  
+    filepath = save_feedback()  
+
+    send_email_with_csv(
+        recipient_email=recipient_email,
+        session_id=st.session_state.session_id
+    )
 
 
 

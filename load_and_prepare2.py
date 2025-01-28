@@ -105,3 +105,5 @@ def reorganize_columns(text, markers):
         start = marker
     columns.append(text[start:].strip())
     return '\n'.join(columns)
+
+
