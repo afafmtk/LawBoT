@@ -48,7 +48,7 @@ class ConversationChainHandler:
     def get_conversation_chain(vectorstore):
         llm = ChatOpenAI()
         memory = ConversationBufferMemory(
-            memory_key='chat_history_1', return_messages=True, k=10)
+            memory_key='chat_history', return_messages=True, k=10)
         
         conversation_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,

@@ -35,8 +35,8 @@ def initialize_session_state():
         st.session_state.file_processed = False
     if 'conversation' not in st.session_state:
         st.session_state.conversation = None
-    if 'chat_history_1' not in st.session_state:
-        st.session_state.chat_history_1 = []
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
     if 'uploaded_file' not in st.session_state:
         st.session_state.uploaded_file = None
     if 'file_uploader_key' not in st.session_state:
@@ -128,7 +128,7 @@ def fbcb(response):
     st.success("Feedback successfully recorded!") 
 
 
-    
+
 def main():
     load_dotenv()
     initialize_session_state()
@@ -195,8 +195,8 @@ def main():
         st.chat_message("assistant").write(result)
 
         # Update chat history
-        st.session_state.chat_history_1.append({"role": "user", "content": user_input})
-        st.session_state.chat_history_1.append({"role": "assistant", "content": result})
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
+        st.session_state.chat_history.append({"role": "assistant", "content": result})
 
         # Log feedback history
         st.session_state.feedback_history.append({
