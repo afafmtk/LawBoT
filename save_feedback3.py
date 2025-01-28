@@ -26,6 +26,7 @@ from email import encoders
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+
 def initialize_session_state():
     """
     Initialise les variables de session nécessaires pour Streamlit.
@@ -44,6 +45,9 @@ def initialize_session_state():
         st.session_state.uploaded_file = None
     if 'file_uploader_key' not in st.session_state:
         st.session_state.file_uploader_key = 0
+    if 'conversation' not in st.session_state:
+        st.session_state.conversation = None  # Initialiser à None pour éviter l'erreur
+
 
 
 def reset_conversation():
@@ -57,12 +61,16 @@ def reset_conversation():
         send_email_with_csv(recipient_email, feedback_file)
 
         st.success(f"Email envoyé avec succès au client avec le fichier {feedback_file.name} !")
+    
+    # Réinitialisation des variables de session
     st.session_state.messages = []
     st.session_state.feedback_history = []
     st.session_state.file_processed = False
     st.session_state.chat_history = []
     st.session_state.uploaded_file = None
     st.session_state.file_uploader_key += 1
+    st.session_state.conversation = None  # Réinitialiser la conversation
+
 
 
 def save_uploaded_file(uploaded_file):
