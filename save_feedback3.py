@@ -36,7 +36,7 @@ def initialize_session_state():
     if 'conversation' not in st.session_state:
         st.session_state.conversation = None
     if 'chat_history_1' not in st.session_state:
-        st.session_state.chat_history = []
+        st.session_state.chat_history_1 = []
     if 'uploaded_file' not in st.session_state:
         st.session_state.uploaded_file = None
     if 'file_uploader_key' not in st.session_state:
@@ -130,7 +130,7 @@ def main():
     load_dotenv()
     initialize_session_state()
     st.set_page_config(layout="wide", page_title="LAW_GPT DXC CDG")
-    
+
     st.markdown("""
     <head>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -141,15 +141,16 @@ def main():
 
     st.sidebar.image("static/logo_dxc.jpg", width=600)
     
+  
     if st.sidebar.button("🔄 New conversation"):
         reset_conversation()
         st.rerun()
 
     uploaded_file = st.file_uploader(
-        "Download a PDF file", type=["pdf"], label_visibility="collapsed",
+        "Upload a PDF file", type=["pdf"], label_visibility="collapsed",
         key=f"file_uploader_{st.session_state.file_uploader_key}"
     )
-    
+
     if uploaded_file is not None:
         if not st.session_state.file_processed:
             file_path = save_uploaded_file(uploaded_file)
@@ -157,35 +158,54 @@ def main():
             with st.spinner("Processing PDF file..."):
                 vectorstore = process_pdf_file(file_path)
                 st.session_state.vectorstore = vectorstore
-                st.session_state["messages"].append({"role": "assistant", "content": "Hello, I am your legal chatbot! 😊 . I am here to answer your legal questions and guide you in understanding legal information. Don't hesitate to ask your questions or explore my features!"})
+                st.session_state["messages"].append({
+                    "role": "assistant",
+                    "content": "Hello, I am your legal chatbot! 😊 I am here to answer your legal questions and guide you in understanding legal information. Don't hesitate to ask your questions or explore my features!"
+                })
                 st.session_state.file_processed = True
         else:
-            st.info("⚠️The file has already been processed.")
+            st.info("⚠️ The file has already been processed.")
 
+    # Display chat history
     for msg in st.session_state.get("messages", []):
         st.chat_message(msg["role"]).write(msg["content"])
 
+    # User input
     if user_input := st.chat_input("Ask your legal question..."):
         if not user_input.strip():
             st.warning("❌ Please enter a valid question.")
             return
 
+        # Add user input to messages
         st.session_state["messages"].append({"role": "user", "content": user_input})
         st.chat_message("user").write(user_input)
 
+        # Process user input
         with st.spinner("Searching in progress..."):
             if st.session_state.vectorstore is None:
                 result = "⚠️ No file has been processed yet. Please upload a file to get started."
             else:
+                # Initialize conversation chain if not already done
                 if st.session_state.conversation is None:
                     st.session_state.conversation = ConversationChainHandler.get_conversation_chain(
                         st.session_state.vectorstore
                     )
-                result = st.session_state.conversation.run({'question':user_input})
+                
+                # Pass user input and chat history to the conversation chain
+                result = st.session_state.conversation.run({
+                    'question': user_input,
+                    'chat_history_1': st.session_state.get('chat_history_1', [])
+                })
 
+        # Add assistant response to messages
         st.session_state["messages"].append({"role": "assistant", "content": result})
         st.chat_message("assistant").write(result)
 
+        # Update chat history
+        st.session_state.chat_history_1.append({"role": "user", "content": user_input})
+        st.session_state.chat_history_1.append({"role": "assistant", "content": result})
+
+        # Log feedback history
         st.session_state.feedback_history.append({
             'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'Session_ID': st.session_state.session_id,
@@ -193,6 +213,7 @@ def main():
             'Réponse': result,
         })
 
+    # Feedback handling
     if len(st.session_state.feedback_history) > 0:
         feedback_response = streamlit_feedback(
             feedback_type="thumbs",
@@ -201,6 +222,7 @@ def main():
         )
         if feedback_response:
             fbcb(feedback_response)
+
 
 if __name__ == "__main__":
     main()
