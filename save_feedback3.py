@@ -14,7 +14,7 @@ from langchain.schema import Document
 import logging
 import os
 from time import time
-from chatbot import PDFHandler, TextChunkHandler, VectorStoreHandler, ConversationChainHandler, UserInputHandler
+from chatbot import TextChunkHandler, VectorStoreHandler, ConversationChainHandler
 from dotenv import load_dotenv
 
 
