@@ -48,7 +48,7 @@ class ConversationChainHandler:
     def get_conversation_chain(vectorstore):
         llm = ChatOpenAI()
         memory = ConversationBufferMemory(
-            memory_key='chat_history', return_messages=True, k=10)
+            memory_key='chat_history_1', return_messages=True, k=10)
         
         conversation_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
@@ -62,7 +62,7 @@ class UserInputHandler:
     @staticmethod
     def handle_userinput(user_question):
         response = st.session_state.conversation({'question': user_question})
-        st.session_state.chat_history = response['chat_history']
+        st.session_state.chat_history = response['chat_history_1']
 
         for i, message in enumerate(st.session_state.chat_history):
             if i % 2 == 0:
