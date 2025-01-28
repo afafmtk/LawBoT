@@ -35,7 +35,7 @@ def initialize_session_state():
         st.session_state.file_processed = False
     if 'conversation' not in st.session_state:
         st.session_state.conversation = None
-    if 'chat_history' not in st.session_state:
+    if 'chat_history_1' not in st.session_state:
         st.session_state.chat_history = []
     if 'uploaded_file' not in st.session_state:
         st.session_state.uploaded_file = None
