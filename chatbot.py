@@ -27,8 +27,8 @@ class TextChunkHandler:
     def get_text_chunks(text):
         text_splitter = CharacterTextSplitter(
             separator="\n",
-            chunk_size=1000,
-            chunk_overlap=200,
+            chunk_size=500,
+            chunk_overlap=100,
             length_function=len
         )
         chunks = text_splitter.split_text(text)
@@ -48,7 +48,8 @@ class ConversationChainHandler:
     def get_conversation_chain(vectorstore):
         llm = ChatOpenAI()
         memory = ConversationBufferMemory(
-            memory_key='chat_history', return_messages=True)
+            memory_key='chat_history', return_messages=True, k=10)
+        
         conversation_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
             retriever=vectorstore.as_retriever(),
