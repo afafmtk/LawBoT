@@ -21,7 +21,6 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# Initialisation 
 def initialize_session_state():
     if 'session_id' not in st.session_state:
         st.session_state.session_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -36,7 +35,7 @@ def initialize_session_state():
     if 'conversation' not in st.session_state:
         st.session_state.conversation = None
     if 'chat_history' not in st.session_state:
-        st.session_state.chat_history = []
+        st.session_state.chat_history = []  # Historique des conversations
     if 'uploaded_file' not in st.session_state:
         st.session_state.uploaded_file = None
     if 'file_uploader_key' not in st.session_state:
@@ -48,9 +47,9 @@ def reset_conversation():
     st.session_state.file_processed = False
     st.session_state.vectorstore = None
     st.session_state.conversation = None
+    st.session_state.chat_history = []  # Réinitialisation de l'historique
     st.session_state.uploaded_file = None
-    st.session_state.file_uploader_key += 1  
-
+    st.session_state.file_uploader_key += 1
 
 def save_uploaded_file(uploaded_file):
     data_dir = os.path.join(os.getcwd(), 'data')
@@ -137,12 +136,12 @@ def main():
     st.markdown("<h1 style='color: purple;'><i class='fas fa-balance-scale'></i> LAWGPT </h1>", unsafe_allow_html=True)
     st.sidebar.image("static/logo_dxc.jpg", width=600)
 
-    # Reset conversation
+    # Réinitialiser la conversation
     if st.sidebar.button("🔄 New conversation"):
         reset_conversation()
         st.rerun()
 
-    # File upload
+    # Téléchargement de fichier
     uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"], label_visibility="collapsed",
                                      key=f"file_uploader_{st.session_state.file_uploader_key}")
     if uploaded_file is not None:
@@ -151,22 +150,25 @@ def main():
             with st.spinner("Processing PDF file..."):
                 vectorstore = process_pdf_file(file_path)
                 st.session_state.vectorstore = vectorstore
-                st.session_state.messages.append({"role": "assistant", "content": "Hello, I am your legal chatbot! 😊"})
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": "Hello, I am your legal chatbot! 😊"
+                })
                 st.session_state.file_processed = True
         else:
             st.info("⚠️ The file has already been processed.")
 
-    # Display previous messages
+    # Afficher les messages précédents
     for msg in st.session_state.get("messages", []):
         st.chat_message(msg["role"]).write(msg["content"])
 
-    # User input
+    # Entrée utilisateur
     if user_input := st.chat_input("Ask your legal question..."):
         if not user_input.strip():
             st.warning("❌ Please enter a valid question.")
             return
 
-        # Ensure conversation and vectorstore are initialized
+        # Vérifier les prérequis
         if st.session_state.vectorstore is None:
             st.warning("⚠️ Vectorstore is not initialized. Please process a file first.")
             return
@@ -176,29 +178,32 @@ def main():
                 st.session_state.vectorstore
             )
 
-        # Add user message to history
+        # Ajouter l'entrée utilisateur à l'historique des messages
         st.session_state.messages.append({"role": "user", "content": user_input})
         st.chat_message("user").write(user_input)
 
-        # Run conversation chain
-        try:
-            result = st.session_state.conversation.run({
-                'question': user_input,
-                'chat_history_1': st.session_state.get('chat_history_1', [])
-            })
-        except ValueError as e:
-            st.error(f"An error occurred: {e}")
-            return
+        
 
-        # Add assistant response to history
+        # Ajouter la question utilisateur à l'historique
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
+
+        # Appeler la chaîne conversationnelle
+        with st.spinner("Searching in progress..."):
+            try:
+                result = st.session_state.conversation.run({
+                    'question': user_input,
+                    'chat_history': st.session_state.chat_history
+                })
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+                return
+
+        # Ajouter la réponse du chatbot à l'historique
         st.session_state.messages.append({"role": "assistant", "content": result})
         st.chat_message("assistant").write(result)
-
-        # Update chat history
-        st.session_state.chat_history.append({"role": "user", "content": user_input})
         st.session_state.chat_history.append({"role": "assistant", "content": result})
 
-        # Log feedback history
+        # Ajouter l'entrée et la réponse au feedback
         st.session_state.feedback_history.append({
             'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'Session_ID': st.session_state.session_id,
@@ -206,7 +211,7 @@ def main():
             'Réponse': result,
         })
 
-    # Feedback handling
+    # Gestion des feedbacks
     if len(st.session_state.feedback_history) > 0:
         feedback_response = streamlit_feedback(
             feedback_type="thumbs",
