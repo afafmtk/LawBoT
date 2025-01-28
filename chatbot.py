@@ -27,8 +27,8 @@ class TextChunkHandler:
     def get_text_chunks(text):
         text_splitter = CharacterTextSplitter(
             separator="\n",
-            chunk_size=500,
-            chunk_overlap=100,
+            chunk_size=1500,
+            chunk_overlap=200,
             length_function=len
         )
         chunks = text_splitter.split_text(text)
@@ -39,7 +39,7 @@ class VectorStoreHandler:
     @staticmethod
     def get_vectorstore(text_chunks):
         embeddings = OpenAIEmbeddings()
-        vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
+        vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings) #FAISS fonctionne uniquement en mémoire.
         return vectorstore
 
 
@@ -47,12 +47,13 @@ class ConversationChainHandler:
     @staticmethod
     def get_conversation_chain(vectorstore):
         llm = ChatOpenAI()
-        memory = ConversationBufferMemory(
-            memory_key='chat_history', return_messages=True, k=10)
-        
+        memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True, k=10)
+        #Gardez uniquement les 10 derniers échanges avec l'utilisateur
+        retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 5})
+        # pour Limiter le nombre de chunks récupérés
         conversation_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
-            retriever=vectorstore.as_retriever(),
+            retriever=retriever,
             memory=memory
         )
         return conversation_chain
