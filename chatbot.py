@@ -35,6 +35,7 @@ class TextChunkHandler:
         return chunks
 
 
+
 class VectorStoreHandler:
     @staticmethod
     def get_vectorstore(text_chunks):
