@@ -113,19 +113,17 @@ def reorganize_columns(text, markers):
     columns.append(text[start:].strip())
     return '\n'.join(columns)
 
-
+"""
 class EmailSender:
     def __init__(self, sender_email, sender_password):
-        """Initialisation avec les informations de connexion SMTP."""
+        
         self.sender_email = sender_email
         self.sender_password = sender_password
         self.smtp_server = "smtp.gmail.com"
         self.smtp_port = 587  # Port pour TLS
 
     def send_email(self, recipient_email, subject, body, attachment_path=None):
-        """
-        Envoie un email avec ou sans pièce jointe.
-        """
+        
         msg = MIMEMultipart()
         msg['From'] = self.sender_email
         msg['To'] = recipient_email
@@ -159,7 +157,6 @@ class FeedbackEmail(EmailSender):
         super().__init__(sender_email, sender_password)
 
     def send_feedback_email(self, recipient_email, filepath):
-        """Envoie un email contenant un fichier CSV de feedback."""
         if os.path.exists(filepath):
             subject = f"Feedbacks de votre session {os.path.basename(filepath)}"
             body = "Veuillez trouver ci-joint le fichier contenant les feedbacks de votre session."
@@ -172,7 +169,7 @@ class ErrorEmail(EmailSender):
         super().__init__(sender_email, sender_password)
 
     def send_error_email(self, recipient_email, error_message):
-        """Envoie un email lorsqu'une erreur est détectée."""
         subject = "🚨 Erreur dans LAW_GPT"
         body = f"Une erreur est survenue dans l'application :\n\n{error_message}"
         self.send_email(recipient_email, subject, body)
+"""
