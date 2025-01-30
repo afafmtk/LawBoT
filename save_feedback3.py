@@ -8,6 +8,7 @@ import csv
 import datetime
 import uuid
 from pathlib import Path
+from load_and_prepare2 import ErrorEmail,FeedbackEmail
 from load_and_prepare2 import extract_text_simple, extract_text_simple, detect_pdf_format, extract_f_double
 from langchain.schema import Document
 import logging
@@ -59,8 +60,14 @@ def reset_conversation():
     tout en sauvegardant les feedbacks et en envoyant un email si nécessaire.
     """
     if len(st.session_state.feedback_history) > 0:
-        send_feedback_email()  
-        st.success(f"Email envoyé avec succès avec le fichier de feedback !")
+        feedback_file = save_feedback()
+        recipient_email = "afaf.matouk@dxc.com"
+
+        # Envoi du feedback par email
+        feedback_sender = FeedbackEmail("afaf83542@gmail.com", "gwsh qfmz shxb cdam")
+        feedback_sender.send_feedback_email(recipient_email, feedback_file)
+
+        st.success(f"Email envoyé avec succès au client avec le fichier {feedback_file.name} !")
 
     st.session_state.messages = []
     st.session_state.feedback_history = []
@@ -186,56 +193,6 @@ def fbcb(response):
 
 
 
-def send_email(recipient_email, subject, body, attachment_path=None):
-    sender_email = "afaf83542@gmail.com"
-    sender_password = "gwsh qfmz shxb cdam"
-
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = recipient_email
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
-
-    # Ajouter une pièce jointe si un fichier est fourni
-    if attachment_path:
-        if os.path.exists(attachment_path):
-            with open(attachment_path, 'rb') as file:
-                part = MIMEBase('application', 'octet-stream')
-                part.set_payload(file.read())
-                encoders.encode_base64(part)
-                part.add_header('Content-Disposition', f'attachment; filename={os.path.basename(attachment_path)}')
-                msg.attach(part)
-        else:
-            print(f"Le fichier {attachment_path} n'existe pas. Email envoyé sans pièce jointe.")
-
-    # Envoi de l’email via SMTP
-    try:
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.starttls()
-            server.login(sender_email, sender_password)
-            server.send_message(msg)
-        print(f"Email envoyé avec succès à {recipient_email} !")
-    except Exception as e:
-        print(f"Erreur lors de l'envoi de l'email : {e}")
-
-
-def send_feedback_email():
-    recipient_email = "afafmatouk2001@gmail.com"
-    filepath = save_feedback()  # Assurez-vous que cette fonction retourne bien un chemin valide
-
-    if filepath:
-        subject = f"Feedbacks de votre session {os.path.basename(filepath)}"
-        body = "Veuillez trouver ci-joint le fichier contenant les feedbacks de votre session."
-        send_email(recipient_email, subject, body, filepath)
-
-
-def send_error_email(error_message):
-    recipient_email = "afafmatouk2001@gmail.com"
-    subject = "Erreur dans LAW_GPT"
-    body = f"Une erreur est survenue dans l'application :\n\n{error_message}"
-    send_email(recipient_email, subject, body)
-
-
 
 def main():
     try:
@@ -331,7 +288,8 @@ def main():
     except Exception as e:
         error_message = f"Erreur : {e}"
         st.error("The operation failed because either your connection or upload the right PDF file ")
-        send_error_email(error_message)
+        email_sender = ErrorEmail("afaf83542@gmail.com", "gwsh qfmz shxb cdam")
+        email_sender.send_error_email("afaf.matouk@dxc.com", error_message)
 
 if __name__ == "__main__":
     main()

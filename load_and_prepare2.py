@@ -113,7 +113,6 @@ def reorganize_columns(text, markers):
     columns.append(text[start:].strip())
     return '\n'.join(columns)
 
-"""
 class EmailSender:
     def __init__(self, sender_email, sender_password):
         
@@ -172,4 +171,3 @@ class ErrorEmail(EmailSender):
         subject = "🚨 Erreur dans LAW_GPT"
         body = f"Une erreur est survenue dans l'application :\n\n{error_message}"
         self.send_email(recipient_email, subject, body)
-"""
