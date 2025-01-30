@@ -282,4 +282,4 @@ def main():
 
         # Envoi d'un email d'erreur en cas de problème
         email_sender = ErrorEmail("afaf83542@gmail.com", "gwsh qfmz shxb cdam")
-        email_sender.send_error_email("afaf.matouk@dxc.com", error_message)
+        email_sender.send_error_email("afafmatouk2001@gmail.com", error_message)
