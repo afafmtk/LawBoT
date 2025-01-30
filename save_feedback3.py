@@ -8,7 +8,6 @@ import csv
 import datetime
 import uuid
 from pathlib import Path
-#from load_and_prepare2 import FeedbackEmail, ErrorEmail
 from load_and_prepare2 import extract_text_simple, extract_text_simple, detect_pdf_format, extract_f_double
 from langchain.schema import Document
 import logging
@@ -333,3 +332,6 @@ def main():
         error_message = f"Erreur : {e}"
         st.error("The operation failed because either your connection or upload the right PDF file ")
         send_error_email(error_message)
+
+if __name__ == "__main__":
+    main()
