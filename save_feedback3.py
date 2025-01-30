@@ -8,6 +8,7 @@ import csv
 import datetime
 import uuid
 from pathlib import Path
+from load_and_prepare2 import EmailSender,FeedbackEmail, ErrorEmail
 from load_and_prepare2 import extract_text_simple, extract_text_simple, detect_pdf_format, extract_f_double
 from langchain.schema import Document
 import logging
@@ -15,11 +16,6 @@ import os
 from time import time
 from chatbot import  TextChunkHandler, VectorStoreHandler, ConversationChainHandler
 from dotenv import load_dotenv
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
 
 
 
@@ -51,17 +47,16 @@ def initialize_session_state():
 
 
 def reset_conversation():
-    """
-    Réinitialise l'état de la session pour démarrer une nouvelle conversation,
-    tout en sauvegardant les feedbacks et en envoyant un email si nécessaire.
-    """
     if len(st.session_state.feedback_history) > 0:
         feedback_file = save_feedback()
         recipient_email = "afafmatouk2001@gmail.com"
-        send_email_with_csv(recipient_email, feedback_file)
+
+        # Envoi du feedback par email
+        feedback_sender = FeedbackEmail("afaf83542@gmail.com", "gwsh qfmz shxb cdam")
+        feedback_sender.send_feedback_email(recipient_email, feedback_file)
 
         st.success(f"Email envoyé avec succès au client avec le fichier {feedback_file.name} !")
-    
+
     # Réinitialisation des variables de session
     st.session_state.messages = []
     st.session_state.feedback_history = []
@@ -188,65 +183,6 @@ def fbcb(response):
     st.success("Feedback successfully added to history!")
 
 
-def send_email_with_csv(recipient_email, filepath):
-    """
-    Envoie un email avec le fichier CSV en pièce jointe.
-    Args:
-        recipient_email (str): L'adresse email du destinataire.
-        filepath (Path): Chemin vers le fichier CSV à envoyer.
-    """
-    sender_email = "afaf83542@gmail.com"  
-    sender_password = "gwsh qfmz shxb cdam"  
-
-    if not filepath.exists():
-        print(f"Le fichier {filepath} n'existe pas. Email non envoyé.")
-        return
-
-   
-    subject = f"Feedbacks de votre session {filepath.stem}"
-    body = "Veuillez trouver ci-joint le fichier contenant les feedbacks de votre session."
-
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = recipient_email
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
-
-    # Ajouter le fichier CSV en pièce jointe
-    with open(filepath, 'rb') as file:
-        part = MIMEBase('application', 'octet-stream')
-        part.set_payload(file.read())
-        encoders.encode_base64(part)
-        part.add_header(
-            'Content-Disposition',
-            f'attachment; filename={filepath.name}',
-        )
-        msg.attach(part)
-
-    # Envoi de l’e-mail via SMTP
-    try:
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.starttls()
-            server.login(sender_email, sender_password)
-            server.send_message(msg)
-        print(f"Email envoyé avec succès à {recipient_email} avec le fichier {filepath.name} !")
-    except Exception as e:
-        print(f"Erreur lors de l'envoi de l'email : {e}")
-
-
-def send_feedback_email():
-    """
-    Envoie un e-mail avec le fichier CSV de la session courante.
-    """
-    recipient_email = "afafmatouk2001@gmail.com"  
-    filepath = save_feedback()  
-
-    send_email_with_csv(
-        recipient_email=recipient_email,
-        session_id=st.session_state.session_id
-    )
-
-
 
 def main():
     try:
@@ -263,8 +199,11 @@ def main():
             st.rerun()
 
         # Téléchargement de fichier
-        uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"], label_visibility="collapsed",
-                                         key=f"file_uploader_{st.session_state.file_uploader_key}")
+        uploaded_file = st.file_uploader(
+            "Upload a PDF file", type=["pdf"], label_visibility="collapsed",
+            key=f"file_uploader_{st.session_state.file_uploader_key}"
+        )
+
         if uploaded_file is not None:
             if not st.session_state.file_processed:
                 file_path = save_uploaded_file(uploaded_file)
@@ -335,10 +274,12 @@ def main():
             )
             if feedback_response:
                 fbcb(feedback_response)
-    
-    except Exception as e:
-        st.error("An unexpected error occurred. Please contact the AI support team.")
-        print(f"Error: {e}")
 
-if __name__ == "__main__":
-    main()
+    except Exception as e:
+        error_message = f"Erreur : {e}"
+        st.error("The operation failed because either your connection or upload the right PDF file ")
+        print(error_message)
+
+        # Envoi d'un email d'erreur en cas de problème
+        email_sender = ErrorEmail("afaf83542@gmail.com", "gwsh qfmz shxb cdam")
+        email_sender.send_error_email("afaf.matouk@dxc.com", error_message)
