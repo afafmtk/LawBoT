@@ -209,7 +209,7 @@ def main():
 
         # Téléchargement de fichier
         uploaded_file = st.file_uploader(
-            "Upload a PDF file", type=["pdf"], label_visibility="collapsed",
+            "Upload a PDF or a Word file", type=["pdf","word"], label_visibility="collapsed",
             key=f"file_uploader_{st.session_state.file_uploader_key}"
         )
 

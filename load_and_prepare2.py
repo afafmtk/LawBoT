@@ -4,7 +4,7 @@ import os
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from chatbot import PDFHandler
 from PyPDF2 import PdfReader
-
+import fitz  
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -12,7 +12,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 import os
 
-#nlp = spacy.load("fr_core_news_sm")
+
 
 
 def extract_text_simple(pdf_path):
@@ -42,53 +42,61 @@ def extract_f_double(pdf_path):
 
 
 
+
+
 def detect_pdf_format(pdf_path):
-    """
-    Detect if the PDF is in single or double column format.
-    """
     try:
-        reader = PdfReader(pdf_path)
-        page = reader.pages[0]  # Load the first page
-        text = page.extract_text()
-        
-        # Simple heuristic: count the number of long spaces to infer columns
+        # Ouvrir le PDF
+        doc = fitz.open(pdf_path)
+        page = doc.load_page(0)  # Analyse uniquement la première page
+
+        # Extraction du texte avec la méthode des blocs
+        blocs = page.get_text("dict")["blocks"]
+
+        # Analyse des positions des blocs
         left_count = 0
         right_count = 0
-        middle_x = 0.5  # Assume normalized coordinates
+        middle_x = page.rect.width / 2  # Trouve le milieu de la page
 
-        for line in text.splitlines():
-            if len(line.strip()) == 0:
-                continue
-            # Check the position of the text blocks (mocked for PyPDF2 as it doesn't give exact positions)
-            words = line.split()
-            if len(words) > 0:
-                if len(words) <= 5:  # Arbitrary heuristic for left-aligned text
+        for block in blocs:
+            if "bbox" in block:  # Vérifie si le bloc contient des coordonnées
+                x0, _, x1, _ = block["bbox"]  # Coordonnées du bloc
+
+                # Compte les blocs à gauche et à droite
+                if x1 <= middle_x:  # Tout le bloc est à gauche
                     left_count += 1
-                else:
+                elif x0 >= middle_x:  # Tout le bloc est à droite
                     right_count += 1
 
+        doc.close()  # Ferme le document après l'analyse
+
+        # Vérifie si les colonnes sont équilibrées
         if left_count > 0 and right_count > 0:
-            return "double"
+            return "double"  # Deux colonnes détectées
         else:
-            return "simple"
+            return "simple"  # Une seule colonne détectée
+
     except Exception as e:
         return f"Erreur lors de la détection : {e}"
+    
+
 
 def clean_text(text):
     """
-    Nettoie et normalise le texte extrait
+    Nettoie et normalise le texte extrait en supprimant les caractères indésirables,
+    en normalisant l'unicode et en structurant le texte de manière lisible.
     """
-    text = re.sub(r'\s+', ' ', text)  
-    text = re.sub(r'\n+', '\n', text)  
+    text = unicodedata.normalize("NFKC", text)
+    text = re.sub(r'\s+', ' ', text)  # Remplace les espaces multiples par un seul espace
+    text = re.sub(r'\n+', '\n', text)  # Supprime les nouvelles lignes excessives
     text = re.sub(r'[^\w\s.,;:!?()\[\]\'"-]', '', text)
     text = re.sub(r'\s+([.,;:!?])', r'\1', text)  
     text = re.sub(r'([.,;:!?])\s+', r'\1 ', text)  
-    text = re.sub(r'\s{2,}', ' ', text)
-
-    # Normalisation 
+    text = text.strip()
+    text = re.sub(r'Page\s?\d+', '', text, flags=re.IGNORECASE)  # Supprimer les numéros de page
     text = text.lower()
+    return text
 
-    return text.strip()
 
 def analyze_page_structure(text):
     column_markers = identify_column_markers(text)

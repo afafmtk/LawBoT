@@ -46,7 +46,7 @@ def get_field_from_text(openai_client ='', MAIN_PROMPT='',field_promt='', text='
     """Enhances and corrects Arabic text using GPT-4."""
     client = openai_client
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": (MAIN_PROMPT)},
             {"role": "user", "content": f" {field_promt} : {field} in this text : {text}"}
