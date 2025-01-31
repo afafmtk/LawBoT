@@ -25,12 +25,10 @@ load_dotenv()
         return text"""
 
 
-class PDFHandler:
+"""class PDFHandler:
     @staticmethod
     def get_pdf_text(pdf_docs):
-        """
-        Extrait le texte d'une liste de PDFs en excluant les images et tableaux.
-        """
+
         text = ""
         for pdf in pdf_docs:
             doc = pymupdf.open(pdf)
@@ -42,7 +40,31 @@ class PDFHandler:
                         text += block.get("text", "") + "\n"
             
             doc.close()
+        return text.strip()"""
+
+class PDFHandler:
+    @staticmethod
+    def get_pdf_text(pdf_docs):
+        """
+        Extrait le texte d'une liste de PDFs en excluant les images et tableaux.
+        """
+        text = ""
+        for pdf in pdf_docs:
+            try:
+                doc = pymupdf.open(pdf)  # Assurez-vous que pdf est un chemin de fichier valide
+                
+                for page in doc:
+                    blocks = page.get_text("dict")["blocks"]
+                    for block in blocks:
+                        if block.get("type", "") == 0:  # Vérifie que c'est bien du texte
+                            text += block.get("text", "") + "\n"
+
+                doc.close()
+            except Exception as e:
+                print(f"Erreur lors de la lecture du PDF {pdf}: {e}")
+        
         return text.strip()
+
 
 
 
