@@ -13,6 +13,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 import os
 import unicodedata
+import BytesIO
 
 
 
@@ -20,7 +21,7 @@ def extract_text_simple(uploaded_file):
     """
     Extrait le texte d'un PDF en mode simple en excluant les images et tableaux.
     """
-    raw_text = PDFHandler.get_pdf_text([uploaded_file])
+    raw_text = PDFHandler.get_pdf_text(uploaded_file)
     cleaned_text = clean_text(raw_text)
     return cleaned_text
 
@@ -29,7 +30,7 @@ def extract_f_double(uploaded_file):
     """
     Extrait et structure le texte pour un PDF à double format en excluant les images et tableaux.
     """
-    raw_text = PDFHandler.get_pdf_text([uploaded_file])
+    raw_text = PDFHandler.get_pdf_text(uploaded_file)
     all_pages_text = []
     
     for text in raw_text.split("\n\n"):  # Supposer que les pages sont séparées par "\n\n"
@@ -39,36 +40,31 @@ def extract_f_double(uploaded_file):
     return '\n'.join(all_pages_text)
 
 
-def detect_pdf_format(uploaded_file):
-    try:
-        if isinstance(uploaded_file, BytesIO):
-            doc = pymupdf.open(stream=uploaded_file, filetype="pdf")
-        else:
-            doc = pymupdf.open(uploaded_file)
-        
-        page = doc.load_page(0)
-        blocs = page.get_text("dict")["blocks"]
-        
-        left_count = 0
-        right_count = 0
-        middle_x = page.rect.width / 2
-        
-        for block in blocs:
-            if "bbox" in block and block.get("type", "") == 0:
-                x0, _, x1, _ = block["bbox"]
-                if x1 <= middle_x:
-                    left_count += 1
-                elif x0 >= middle_x:
-                    right_count += 1
-        
-        doc.close()
-        
-        if left_count > 0 and right_count > 0:
-            return "double"
-        else:
-            return "simple"
-    except Exception as e:
-        return f"Erreur lors de la détection : {e}"
+class PDFHandler:
+    @staticmethod
+    def get_pdf_text(pdf_file):
+        """
+        Extrait le texte d'un fichier PDF en excluant les images et tableaux.
+        """
+        text = ""
+        try:
+            # Vérifier si c'est un fichier binaire (uploadé dans Streamlit)
+            if isinstance(pdf_file, BytesIO):
+                doc = pymupdf.open(stream=pdf_file, filetype="pdf")
+            else:
+                doc = pymupdf.open(pdf_file)  # Fichier local sous forme de chemin
+
+            for page in doc:
+                blocks = page.get_text("dict")["blocks"]
+                for block in blocks:
+                    if block.get("type", "") == 0:  # Vérifier que c'est bien du texte
+                        text += block.get("text", "") + "\n"
+
+            doc.close()
+        except Exception as e:
+            print(f"Erreur lors de la lecture du PDF: {e}")
+
+        return text.strip()
     
 
 

@@ -41,17 +41,12 @@ def initialize_session_state():
         st.session_state.messages = []
     if 'feedback_history' not in st.session_state:
         st.session_state.feedback_history = []
-    if 'file_processed' not in st.session_state:
-        st.session_state.file_processed = False
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []  # Historique des conversations
-    if 'uploaded_file' not in st.session_state:
-        st.session_state.uploaded_file = None
     if 'file_uploader_key' not in st.session_state:
         st.session_state.file_uploader_key = 0
     if 'conversation' not in st.session_state:
         st.session_state.conversation = None  # Initialiser à None pour éviter l'erreur
-
 
 
 def reset_conversation():
@@ -71,15 +66,12 @@ def reset_conversation():
 
     st.session_state.messages = []
     st.session_state.feedback_history = []
-    st.session_state.file_processed = False
     st.session_state.chat_history = []
-    st.session_state.uploaded_file = None
     st.session_state.file_uploader_key += 1
-    st.session_state.conversation = None 
+    st.session_state.conversation = None  
 
 
-
-def save_uploaded_file(uploaded_file):
+"""def save_uploaded_file(uploaded_file):
     data_dir = os.path.join(os.getcwd(), 'data')
     os.makedirs(data_dir, exist_ok=True)
 
@@ -88,22 +80,22 @@ def save_uploaded_file(uploaded_file):
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
     return file_path
+"""
 
-
-def process_pdf_file(file_path):
+def process_pdf_file(file_bytes):
     """
     Traite un fichier PDF, extrait le texte, génère des chunks,
     et crée un magasin de vecteurs.
     """
     # Détecter le format du PDF
-    format_type = detect_pdf_format(file_path)
+    format_type = detect_pdf_format(file_bytes)  # Utiliser le fichier en mémoire
     logger.info(f"📝 Format detected. : {format_type}")
 
     # Extraire le texte selon le format détecté
     if format_type == "double":
-        text = extract_f_double(file_path)
+        text = extract_f_double(file_bytes)
     else:
-        text = extract_text_simple(file_path)
+        text = extract_text_simple(file_bytes)
 
     text_chunks = TextChunkHandler.get_text_chunks(text)
     logger.info(f" {len(text_chunks)} Chunks generated from the text.")
@@ -112,6 +104,7 @@ def process_pdf_file(file_path):
     logger.info(" Vectors successfully created.")
 
     return vectorstore
+
 
 
 def save_feedback():
@@ -143,10 +136,7 @@ def save_feedback():
 
     return filepath  
 
-def save_feedback():
-    """
-    Sauvegarde les feedbacks dans un fichier CSV spécifique à la session.
-    """
+"""def save_feedback():
     feedback_dir = Path('feedbacks')
     feedback_dir.mkdir(exist_ok=True)  
     filepath = feedback_dir / f'{st.session_state.session_id}.csv'
@@ -169,7 +159,7 @@ def save_feedback():
                 feedback['feedback']['text']
             ])
 
-    return filepath  
+    return filepath  """
 
 def fbcb(response):
     """
@@ -190,6 +180,7 @@ def fbcb(response):
     
     last_entry.update({'feedback': feedback})
     st.success("Feedback successfully added to history!")
+
 
 
 def main():
@@ -213,19 +204,15 @@ def main():
         )
 
         if uploaded_file is not None:
-            if not st.session_state.file_processed:
-                file_bytes = BytesIO(uploaded_file.read())  # Lire le fichier en mémoire
-                
-                with st.spinner("Processing PDF file..."):
-                    vectorstore = process_pdf_file(file_bytes)  # Passer le fichier directement
-                    st.session_state.vectorstore = vectorstore
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": "Hello, I am your legal chatbot! 😊"
-                    })
-                    st.session_state.file_processed = True
-            else:
-                st.info("⚠️ The file has already been processed.")
+            file_bytes = BytesIO(uploaded_file.read())  # Lire le fichier en mémoire
+            
+            with st.spinner("Processing PDF file..."):
+                vectorstore = process_pdf_file(file_bytes)  # Passer directement le fichier en mémoire
+                st.session_state.vectorstore = vectorstore
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": "Hello, I am your legal chatbot! 😊"
+                })
 
         # Afficher les messages précédents
         for msg in st.session_state.get("messages", []):

@@ -45,30 +45,29 @@ load_dotenv()
 
 class PDFHandler:
     @staticmethod
-    def get_pdf_text(pdf_docs):
+    def get_pdf_text(pdf_file):
         """
-        Extrait le texte d'une liste de PDFs en excluant les images et tableaux.
+        Extrait le texte d'un fichier PDF en excluant les images et tableaux.
         """
         text = ""
-        for pdf in pdf_docs:
-            try:
-                if isinstance(pdf, BytesIO):
-                    doc = pymupdf.open(stream=pdf, filetype="pdf")
-                else:
-                    doc = pymupdf.open(pdf)  # Ouvre depuis un chemin fichier
-                
-                for page in doc:
-                    blocks = page.get_text("dict")["blocks"]
-                    for block in blocks:
-                        if block.get("type", "") == 0:  # Vérifie que c'est bien du texte
-                            text += block.get("text", "") + "\n"
-                
-                doc.close()
-            except Exception as e:
-                print(f"Erreur lors de la lecture du PDF {pdf}: {e}")
-        
-        return text.strip()
+        try:
+            # Vérifier si c'est un fichier binaire (uploadé dans Streamlit)
+            if isinstance(pdf_file, BytesIO):
+                doc = pymupdf.open(stream=pdf_file, filetype="pdf")
+            else:
+                doc = pymupdf.open(pdf_file)  # Fichier local sous forme de chemin
 
+            for page in doc:
+                blocks = page.get_text("dict")["blocks"]
+                for block in blocks:
+                    if block.get("type", "") == 0:  # Vérifier que c'est bien du texte
+                        text += block.get("text", "") + "\n"
+
+            doc.close()
+        except Exception as e:
+            print(f"Erreur lors de la lecture du PDF: {e}")
+
+        return text.strip()
 
 
 
