@@ -2,13 +2,12 @@ import streamlit as st
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.memory import ConversationBufferMemory
+#from langchain.memory import ConversationBufferWindowMemory
 from langchain.chains import ConversationalRetrievalChain
 from dotenv import load_dotenv
 
-#from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
-from langchain_community.chat_models import ChatOpenAI
 from langchain_community.llms import HuggingFaceHub
 load_dotenv()
 
@@ -51,11 +50,10 @@ class VectorStoreHandler:
 class ConversationChainHandler:
     @staticmethod
     def get_conversation_chain(vectorstore):
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.7)
-        memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True, k=8)
-        #Gardez uniquement les 10 derniers échanges avec l'utilisateur
+        llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
+        memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
+        #memory = ConversationBufferWindowMemory(memory_key='chat_history', return_messages=True, k=8)
         retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
-        # pour Limiter le nombre de chunks récupérés
         conversation_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
             retriever=retriever,
