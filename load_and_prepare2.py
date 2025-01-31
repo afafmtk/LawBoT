@@ -13,9 +13,9 @@ from email.mime.base import MIMEBase
 from email import encoders
 import os
 import unicodedata
-import spacy
-from spacy.lang.fr.stop_words import STOP_WORDS
-nlp = spacy.load("fr_core_news_sm")
+#import spacy
+#from spacy.lang.fr.stop_words import STOP_WORDS
+#nlp = spacy.load("fr_core_news_sm")
 
 
 
@@ -100,17 +100,7 @@ def clean_text(text):
     text = text.strip()
     text = re.sub(r'Page\s?\d+', '', text, flags=re.IGNORECASE)  # Supprimer les numéros de page
     text = text.lower()
-    # Lemmatisation et suppression des mots vides avec spaCy
-    doc = nlp(text)
-    cleaned_tokens = []
-    for token in doc:
-        if token.lemma_ not in STOP_WORDS and not token.is_punct:
-            cleaned_tokens.append(token.lemma_)
-
-    cleaned_text = ' '.join(cleaned_tokens)
-
-    return cleaned_text.strip()
-    #return text
+    return text
 
 
 def analyze_page_structure(text):
