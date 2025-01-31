@@ -5,29 +5,33 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from dotenv import load_dotenv
 
-from langchain_community.embeddings import OpenAIEmbeddings
+#from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.chat_models import ChatOpenAI
 from langchain_community.llms import HuggingFaceHub
 load_dotenv()
+
 
 class PDFHandler:
     @staticmethod
     def get_pdf_text(pdf_docs):
         text = ""
         for pdf in pdf_docs:
-            pdf_reader = PdfReader(pdf)
-            for page in pdf_reader.pages:
-                text += page.extract_text()
+            with open(pdf, "rb") as f:
+                pdf_reader = PdfReader(f)
+                for page in pdf_reader.pages:
+                    text += page.extract_text() or ""  # Évite les erreurs si le texte est None
         return text
+
 
 
 class TextChunkHandler:
     @staticmethod
     def get_text_chunks(text):
         text_splitter = CharacterTextSplitter(
-            separator="\n",
-            chunk_size=300,
+            separator="\n\n",
+            chunk_size=500,
             chunk_overlap=50,
             length_function=len
         )
@@ -47,7 +51,7 @@ class VectorStoreHandler:
 class ConversationChainHandler:
     @staticmethod
     def get_conversation_chain(vectorstore):
-        llm = ChatOpenAI()
+        llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.7)
         memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True, k=8)
         #Gardez uniquement les 10 derniers échanges avec l'utilisateur
         retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
@@ -59,12 +63,12 @@ class ConversationChainHandler:
         )
         return conversation_chain
 
-"""
+
 class UserInputHandler:
     @staticmethod
     def handle_userinput(user_question):
         response = st.session_state.conversation({'question': user_question})
-        st.session_state.chat_history = response['chat_history_1']
+        st.session_state.chat_history = response['chat_history']
 
         for i, message in enumerate(st.session_state.chat_history):
             if i % 2 == 0:
@@ -73,4 +77,3 @@ class UserInputHandler:
             else:
                 st.write(bot_template.replace(
                     "{{MSG}}", message.content), unsafe_allow_html=True)
-"""
