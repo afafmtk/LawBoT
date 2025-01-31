@@ -10,6 +10,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_community.llms import HuggingFaceHub
 import pymupdf
+import BytesIO
 load_dotenv()
 
 
@@ -51,14 +52,17 @@ class PDFHandler:
         text = ""
         for pdf in pdf_docs:
             try:
-                doc = pymupdf.open(pdf)  # Assurez-vous que pdf est un chemin de fichier valide
+                if isinstance(pdf, BytesIO):
+                    doc = pymupdf.open(stream=pdf, filetype="pdf")
+                else:
+                    doc = pymupdf.open(pdf)  # Ouvre depuis un chemin fichier
                 
                 for page in doc:
                     blocks = page.get_text("dict")["blocks"]
                     for block in blocks:
                         if block.get("type", "") == 0:  # Vérifie que c'est bien du texte
                             text += block.get("text", "") + "\n"
-
+                
                 doc.close()
             except Exception as e:
                 print(f"Erreur lors de la lecture du PDF {pdf}: {e}")

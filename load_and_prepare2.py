@@ -16,34 +16,36 @@ import unicodedata
 
 
 
-def extract_text_simple(pdf_path):
+def extract_text_simple(uploaded_file):
     """
-    Extrait le texte d'un PDF en mode simple.
+    Extrait le texte d'un PDF en mode simple en excluant les images et tableaux.
     """
-    # Utiliser PDFHandler pour centraliser l'extraction de texte
-    raw_text = PDFHandler.get_pdf_text([pdf_path])  # PDFHandler attend une liste de fichiers
+    raw_text = PDFHandler.get_pdf_text([uploaded_file])
     cleaned_text = clean_text(raw_text)
     return cleaned_text
 
 
-def extract_f_double(pdf_path):
+def extract_f_double(uploaded_file):
     """
-    Extrait et structure le texte pour un PDF à double format.
+    Extrait et structure le texte pour un PDF à double format en excluant les images et tableaux.
     """
-    # Utiliser PDFHandler pour extraire le texte
-    raw_text = PDFHandler.get_pdf_text([pdf_path])
+    raw_text = PDFHandler.get_pdf_text([uploaded_file])
     all_pages_text = []
-
+    
     for text in raw_text.split("\n\n"):  # Supposer que les pages sont séparées par "\n\n"
         structured_text = analyze_page_structure(clean_text(text))
         all_pages_text.append(structured_text)
-
+    
     return '\n'.join(all_pages_text)
 
 
-def detect_pdf_format(pdf_path):
+def detect_pdf_format(uploaded_file):
     try:
-        doc = pymupdf.open(pdf_path)
+        if isinstance(uploaded_file, BytesIO):
+            doc = pymupdf.open(stream=uploaded_file, filetype="pdf")
+        else:
+            doc = pymupdf.open(uploaded_file)
+        
         page = doc.load_page(0)
         blocs = page.get_text("dict")["blocks"]
         
@@ -52,7 +54,7 @@ def detect_pdf_format(pdf_path):
         middle_x = page.rect.width / 2
         
         for block in blocs:
-            if "bbox" in block and "image" not in block and "table" not in block:
+            if "bbox" in block and block.get("type", "") == 0:
                 x0, _, x1, _ = block["bbox"]
                 if x1 <= middle_x:
                     left_count += 1
@@ -67,7 +69,6 @@ def detect_pdf_format(pdf_path):
             return "simple"
     except Exception as e:
         return f"Erreur lors de la détection : {e}"
-
     
 
 

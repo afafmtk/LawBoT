@@ -22,6 +22,7 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 import os
+from io import BytesIO
 
 
 
@@ -191,8 +192,6 @@ def fbcb(response):
     st.success("Feedback successfully added to history!")
 
 
-
-
 def main():
     try:
         load_dotenv()
@@ -209,15 +208,16 @@ def main():
 
         # Téléchargement de fichier
         uploaded_file = st.file_uploader(
-            "Upload a PDF or a Word file", type=["pdf","word"], label_visibility="collapsed",
+            "Upload a PDF or a Word file", type=["pdf", "word"], label_visibility="collapsed",
             key=f"file_uploader_{st.session_state.file_uploader_key}"
         )
 
         if uploaded_file is not None:
             if not st.session_state.file_processed:
-                file_path = save_uploaded_file(uploaded_file)
+                file_bytes = BytesIO(uploaded_file.read())  # Lire le fichier en mémoire
+                
                 with st.spinner("Processing PDF file..."):
-                    vectorstore = process_pdf_file(file_path)
+                    vectorstore = process_pdf_file(file_bytes)  # Passer le fichier directement
                     st.session_state.vectorstore = vectorstore
                     st.session_state.messages.append({
                         "role": "assistant",
@@ -286,7 +286,7 @@ def main():
 
     except Exception as e:
         error_message = f"Erreur : {e}"
-        st.error("The operation failed because either your connection or upload the right PDF file ")
+        st.error("The operation failed because either your connection or upload the right PDF file.")
         email_sender = ErrorEmail("afaf83542@gmail.com", "gwsh qfmz shxb cdam")
         email_sender.send_error_email("afaf.matouk@dxc.com", error_message)
 
