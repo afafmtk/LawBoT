@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_community.llms import HuggingFaceHub
+import pymupdf
 load_dotenv()
 
 
@@ -21,8 +22,28 @@ load_dotenv()
                 pdf_reader = PdfReader(f)
                 for page in pdf_reader.pages:
                     text += page.extract_text() or ""  # Évite les erreurs si le texte est None
-        return text
-"""
+        return text"""
+
+
+class PDFHandler:
+    @staticmethod
+    def get_pdf_text(pdf_docs):
+        """
+        Extrait le texte d'une liste de PDFs en excluant les images et tableaux.
+        """
+        text = ""
+        for pdf in pdf_docs:
+            doc = pymupdf.open(pdf)
+            
+            for page in doc:
+                blocks = page.get_text("dict")["blocks"]
+                for block in blocks:
+                    if "image" not in block and "table" not in block:
+                        text += block.get("text", "") + "\n"
+            
+            doc.close()
+        return text.strip()
+
 
 
 class TextChunkHandler:

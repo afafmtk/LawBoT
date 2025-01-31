@@ -2,7 +2,7 @@
 import re
 import os
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-#from chatbot import PDFHandler
+from chatbot import PDFHandler
 from PyPDF2 import PdfReader
 import fitz 
 import pymupdf 
@@ -15,29 +15,13 @@ import os
 import unicodedata
 
 
-def get_pdf_text(pdf_path):
-    """
-    Extrait le texte du PDF en excluant les images et les tableaux.
-    """
-    text = ""
-    doc = pymupdf.open(pdf_path)
-    
-    for page in doc:
-        blocks = page.get_text("dict")["blocks"]
-        for block in blocks:
-            if "image" not in block and "table" not in block:
-                text += block.get("text", "") + "\n"
-    
-    doc.close()
-    return text.strip()
-
 
 def extract_text_simple(pdf_path):
     """
     Extrait le texte d'un PDF en mode simple.
     """
     # Utiliser PDFHandler pour centraliser l'extraction de texte
-    raw_text = get_pdf_text([pdf_path])  # PDFHandler attend une liste de fichiers
+    raw_text = PDFHandler.get_pdf_text([pdf_path])  # PDFHandler attend une liste de fichiers
     cleaned_text = clean_text(raw_text)
     return cleaned_text
 
@@ -47,7 +31,7 @@ def extract_f_double(pdf_path):
     Extrait et structure le texte pour un PDF à double format.
     """
     # Utiliser PDFHandler pour extraire le texte
-    raw_text = get_pdf_text([pdf_path])
+    raw_text = PDFHandler.get_pdf_text([pdf_path])
     all_pages_text = []
 
     for text in raw_text.split("\n\n"):  # Supposer que les pages sont séparées par "\n\n"
