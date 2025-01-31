@@ -17,18 +17,6 @@ load_dotenv()
 """class PDFHandler:
     @staticmethod
     def get_pdf_text(pdf_docs):
-        text = ""
-        for pdf in pdf_docs:
-            with open(pdf, "rb") as f:
-                pdf_reader = PdfReader(f)
-                for page in pdf_reader.pages:
-                    text += page.extract_text() or ""  # Évite les erreurs si le texte est None
-        return text"""
-
-
-"""class PDFHandler:
-    @staticmethod
-    def get_pdf_text(pdf_docs):
 
         text = ""
         for pdf in pdf_docs:
@@ -49,9 +37,11 @@ class PDFHandler:
         """
         Extrait le texte d'un fichier PDF en excluant les images et tableaux.
         """
+        print(f"📂 PDFHandler.get_pdf_text reçoit : {type(pdf_file)}")  # Vérifier ce qui est reçu
+        
         text = ""
         try:
-            # Vérifier si c'est un fichier binaire (uploadé dans Streamlit)
+            # Vérifier si c'est un fichier binaire (BytesIO) ou un chemin
             if isinstance(pdf_file, BytesIO):
                 doc = pymupdf.open(stream=pdf_file, filetype="pdf")
             else:
@@ -65,9 +55,11 @@ class PDFHandler:
 
             doc.close()
         except Exception as e:
-            print(f"Erreur lors de la lecture du PDF: {e}")
+            print(f"❌ Erreur lors de la lecture du PDF: {e}")
 
         return text.strip()
+
+
 
 
 

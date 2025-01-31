@@ -16,3 +16,4 @@ tiktoken
 langchain_openai
 pandas
 pymupdf
+BytesIO

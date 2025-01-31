@@ -87,8 +87,10 @@ def process_pdf_file(file_bytes):
     Traite un fichier PDF, extrait le texte, génère des chunks,
     et crée un magasin de vecteurs.
     """
+    print(f"📂 process_pdf_file : {type(file_bytes)}")  # Vérifier le type de file_bytes
+    
     # Détecter le format du PDF
-    format_type = detect_pdf_format(file_bytes)  # Utiliser le fichier en mémoire
+    format_type = detect_pdf_format(file_bytes)  
     logger.info(f"📝 Format detected. : {format_type}")
 
     # Extraire le texte selon le format détecté
@@ -104,6 +106,7 @@ def process_pdf_file(file_bytes):
     logger.info(" Vectors successfully created.")
 
     return vectorstore
+
 
 
 
@@ -204,15 +207,17 @@ def main():
         )
 
         if uploaded_file is not None:
-            file_bytes = BytesIO(uploaded_file.read())  # Lire le fichier en mémoire
-            
-            with st.spinner("Processing PDF file..."):
-                vectorstore = process_pdf_file(file_bytes)  # Passer directement le fichier en mémoire
-                st.session_state.vectorstore = vectorstore
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": "Hello, I am your legal chatbot! 😊"
-                })
+            file_bytes = BytesIO(uploaded_file.read())  # Lire en mémoire
+            print(f"📂 Fichier chargé : {type(file_bytes)}, taille : {len(file_bytes.getvalue())} octets")
+
+        with st.spinner("Processing PDF file..."):
+           vectorstore = process_pdf_file(file_bytes)  # ⚠️ Assure-toi qu'on passe bien `file_bytes` seul
+           st.session_state.vectorstore = vectorstore
+           st.session_state.messages.append({
+            "role": "assistant",
+            "content": "Hello, I am your legal chatbot! 😊"
+        })
+
 
         # Afficher les messages précédents
         for msg in st.session_state.get("messages", []):
