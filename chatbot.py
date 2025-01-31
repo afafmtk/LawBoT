@@ -10,7 +10,6 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_community.llms import HuggingFaceHub
 import pymupdf
-import BytesIO
 load_dotenv()
 
 

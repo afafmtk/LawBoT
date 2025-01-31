@@ -13,7 +13,6 @@ from email.mime.base import MIMEBase
 from email import encoders
 import os
 import unicodedata
-import BytesIO
 
 
 
