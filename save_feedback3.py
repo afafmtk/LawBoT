@@ -150,12 +150,11 @@ def fbcb(response):
 
 
 
-st.set_page_config(layout="wide", page_title="LAW_GPT DXC CDG")
-
 def main():
     try:
         load_dotenv()
         initialize_session_state()
+        st.set_page_config(layout="wide", page_title="LAW_GPT DXC CDG")
 
         st.markdown("<h1 style='color: purple;'><i class='fas fa-balance-scale'></i> LAWGPT </h1>", unsafe_allow_html=True)
         st.sidebar.image("static/logo_dxc.jpg", width=600)
@@ -167,23 +166,22 @@ def main():
 
         # Téléchargement de fichier
         uploaded_file = st.file_uploader(
-            "Upload a PDF or a Word file", 
-            type=["pdf", "word"], 
-            label_visibility="collapsed",
+            "Upload a PDF or a Word file", type=["pdf", "word"], label_visibility="collapsed",
             key=f"file_uploader_{st.session_state.file_uploader_key}"
         )
 
         if uploaded_file is not None:
-            file_bytes = BytesIO(uploaded_file.read())
+            file_bytes = BytesIO(uploaded_file.read())  # Lire en mémoire
             print(f"📂 Fichier chargé : {type(file_bytes)}, taille : {len(file_bytes.getvalue())} octets")
 
-            with st.spinner("Processing PDF file..."):
-                vectorstore = process_pdf_file(file_bytes)
-                st.session_state.vectorstore = vectorstore
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": "Hello, I am your legal chatbot! 😊"
-                })
+        with st.spinner("Processing PDF file..."):
+           vectorstore = process_pdf_file(file_bytes)  # ⚠️ Assure-toi qu'on passe bien `file_bytes` seul
+           st.session_state.vectorstore = vectorstore
+           st.session_state.messages.append({
+            "role": "assistant",
+            "content": "Hello, I am your legal chatbot! 😊"
+        })
+
 
         # Afficher les messages précédents
         for msg in st.session_state.get("messages", []):
