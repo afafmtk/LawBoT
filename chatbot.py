@@ -12,7 +12,7 @@ from langchain_community.llms import HuggingFaceHub
 load_dotenv()
 
 
-class PDFHandler:
+"""class PDFHandler:
     @staticmethod
     def get_pdf_text(pdf_docs):
         text = ""
@@ -22,7 +22,7 @@ class PDFHandler:
                 for page in pdf_reader.pages:
                     text += page.extract_text() or ""  # Évite les erreurs si le texte est None
         return text
-
+"""
 
 
 class TextChunkHandler:

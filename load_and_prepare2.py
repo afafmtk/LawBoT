@@ -2,7 +2,7 @@
 import re
 import os
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from chatbot import PDFHandler
+#from chatbot import PDFHandler
 from PyPDF2 import PdfReader
 import fitz 
 import pymupdf 
@@ -13,11 +13,23 @@ from email.mime.base import MIMEBase
 from email import encoders
 import os
 import unicodedata
-#import spacy
-#from spacy.lang.fr.stop_words import STOP_WORDS
-#nlp = spacy.load("fr_core_news_sm")
 
 
+def get_pdf_text(pdf_path):
+    """
+    Extrait le texte du PDF en excluant les images et les tableaux.
+    """
+    text = ""
+    doc = pymupdf.open(pdf_path)
+    
+    for page in doc:
+        blocks = page.get_text("dict")["blocks"]
+        for block in blocks:
+            if "image" not in block and "table" not in block:
+                text += block.get("text", "") + "\n"
+    
+    doc.close()
+    return text.strip()
 
 
 def extract_text_simple(pdf_path):
@@ -25,7 +37,7 @@ def extract_text_simple(pdf_path):
     Extrait le texte d'un PDF en mode simple.
     """
     # Utiliser PDFHandler pour centraliser l'extraction de texte
-    raw_text = PDFHandler.get_pdf_text([pdf_path])  # PDFHandler attend une liste de fichiers
+    raw_text = get_pdf_text([pdf_path])  # PDFHandler attend une liste de fichiers
     cleaned_text = clean_text(raw_text)
     return cleaned_text
 
@@ -35,7 +47,7 @@ def extract_f_double(pdf_path):
     Extrait et structure le texte pour un PDF à double format.
     """
     # Utiliser PDFHandler pour extraire le texte
-    raw_text = PDFHandler.get_pdf_text([pdf_path])
+    raw_text = get_pdf_text([pdf_path])
     all_pages_text = []
 
     for text in raw_text.split("\n\n"):  # Supposer que les pages sont séparées par "\n\n"
@@ -45,44 +57,33 @@ def extract_f_double(pdf_path):
     return '\n'.join(all_pages_text)
 
 
-
-
-
-
 def detect_pdf_format(pdf_path):
     try:
-        # Ouvrir le PDF
         doc = pymupdf.open(pdf_path)
-        page = doc.load_page(0)  # Analyse uniquement la première page
-
-        # Extraction du texte avec la méthode des blocs
+        page = doc.load_page(0)
         blocs = page.get_text("dict")["blocks"]
-
-        # Analyse des positions des blocs
+        
         left_count = 0
         right_count = 0
-        middle_x = page.rect.width / 2  # Trouve le milieu de la page
-
+        middle_x = page.rect.width / 2
+        
         for block in blocs:
-            if "bbox" in block:  # Vérifie si le bloc contient des coordonnées
-                x0, _, x1, _ = block["bbox"]  # Coordonnées du bloc
-
-                # Compte les blocs à gauche et à droite
-                if x1 <= middle_x:  # Tout le bloc est à gauche
+            if "bbox" in block and "image" not in block and "table" not in block:
+                x0, _, x1, _ = block["bbox"]
+                if x1 <= middle_x:
                     left_count += 1
-                elif x0 >= middle_x:  # Tout le bloc est à droite
+                elif x0 >= middle_x:
                     right_count += 1
-
-        doc.close()  # Ferme le document après l'analyse
-
-        # Vérifie si les colonnes sont équilibrées
+        
+        doc.close()
+        
         if left_count > 0 and right_count > 0:
-            return "double"  # Deux colonnes détectées
+            return "double"
         else:
-            return "simple"  # Une seule colonne détectée
-
+            return "simple"
     except Exception as e:
         return f"Erreur lors de la détection : {e}"
+
     
 
 
@@ -92,13 +93,13 @@ def clean_text(text):
     en normalisant l'unicode et en structurant le texte de manière lisible.
     """
     text = unicodedata.normalize("NFKC", text)
-    text = re.sub(r'\s+', ' ', text)  # Remplace les espaces multiples par un seul espace
-    text = re.sub(r'\n+', '\n', text)  # Supprime les nouvelles lignes excessives
+    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'\n+', '\n', text)
     text = re.sub(r'[^\w\s.,;:!?()\[\]\'"-]', '', text)
-    text = re.sub(r'\s+([.,;:!?])', r'\1', text)  
-    text = re.sub(r'([.,;:!?])\s+', r'\1 ', text)  
+    text = re.sub(r'\s+([.,;:!?])', r'\1', text)
+    text = re.sub(r'([.,;:!?])\s+', r'\1 ', text)
     text = text.strip()
-    text = re.sub(r'Page\s?\d+', '', text, flags=re.IGNORECASE)  # Supprimer les numéros de page
+    text = re.sub(r'Page\s?\d+', '', text, flags=re.IGNORECASE)
     text = text.lower()
     return text
 

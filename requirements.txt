@@ -7,7 +7,6 @@ argparse
 streamlit
 frontend
 tools
-spacy
 https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.7.0/fr_core_news_sm-3.7.0.tar.gz
 PyPDF2
 streamlit_feedback
@@ -16,5 +15,4 @@ faiss-cpu
 tiktoken
 langchain_openai
 pandas
-fitz
 pymupdf
