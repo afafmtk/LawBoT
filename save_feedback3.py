@@ -71,17 +71,6 @@ def reset_conversation():
     st.session_state.conversation = None  
 
 
-"""def save_uploaded_file(uploaded_file):
-    data_dir = os.path.join(os.getcwd(), 'data')
-    os.makedirs(data_dir, exist_ok=True)
-
-    file_path = os.path.join(data_dir, uploaded_file.name)
-    if not os.path.exists(file_path):
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-    return file_path
-"""
-
 def process_pdf_file(file_bytes):
     """
     Traite un fichier PDF, extrait le texte, génère des chunks,
@@ -138,31 +127,6 @@ def save_feedback():
             ])
 
     return filepath  
-
-"""def save_feedback():
-    feedback_dir = Path('feedbacks')
-    feedback_dir.mkdir(exist_ok=True)  
-    filepath = feedback_dir / f'{st.session_state.session_id}.csv'
-    file_exists = filepath.exists()
-
-    with open(filepath, mode='w' if not file_exists else 'a', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-
-        # Ajouter l'en-tête si le fichier est nouveau
-        if not file_exists:
-            writer.writerow(["Question", "Answer", "Score", "Valeur", "Commentaire"])
-
-        # Écrire les feedbacks dans le fichier
-        for feedback in st.session_state.feedback_history:
-            writer.writerow([
-                feedback['Question'],
-                feedback['Réponse'],
-                feedback['feedback']['score'],
-                feedback['feedback']['valeur'],
-                feedback['feedback']['text']
-            ])
-
-    return filepath  """
 
 def fbcb(response):
     """
