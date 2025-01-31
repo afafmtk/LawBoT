@@ -4,7 +4,8 @@ import os
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from chatbot import PDFHandler
 from PyPDF2 import PdfReader
-import fitz  
+import fitz 
+import pymupdf 
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -49,7 +50,7 @@ def extract_f_double(pdf_path):
 def detect_pdf_format(pdf_path):
     try:
         # Ouvrir le PDF
-        doc = fitz.open(pdf_path)
+        doc = pymupdf.open(pdf_path)
         page = doc.load_page(0)  # Analyse uniquement la première page
 
         # Extraction du texte avec la méthode des blocs

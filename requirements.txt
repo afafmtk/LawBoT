@@ -15,6 +15,6 @@ openai
 faiss-cpu
 tiktoken
 langchain_openai
-pdfplumber 
 pandas
 fitz
+pymupdf
