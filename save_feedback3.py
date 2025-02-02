@@ -176,22 +176,23 @@ def main():
 
         # Téléchargement de fichier
         uploaded_file = st.file_uploader(
-            "Upload a PDF or a Word file", type=["pdf"], label_visibility="collapsed",
+            "Upload a PDF file", type=["pdf"], label_visibility="collapsed",
             key=f"file_uploader_{st.session_state.file_uploader_key}"
         )
 
-        # Vérifiez si un fichier a été traité
-        if st.session_state.uploaded_file and not st.session_state.file_processed:
-            st.success("✅ Fichier téléchargé avec succès!")
-            file_path = save_uploaded_file(st.session_state.uploaded_file)
-
-            with st.spinner("Processing PDF file..."):
-               vectorstore = process_pdf_file(file_path)  
-               st.session_state.vectorstore = vectorstore
-               st.session_state.messages.append({
-            "role": "assistant",
-            "content": "Hello, I am your legal chatbot! 😊"})
-               st.session_state.file_processed = True
+        if uploaded_file is not None:
+            if not st.session_state.file_processed:
+                file_path = save_uploaded_file(uploaded_file)
+                with st.spinner("Processing PDF file..."):
+                    vectorstore = process_pdf_file(file_path)
+                    st.session_state.vectorstore = vectorstore
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": "Hello, I am your legal chatbot! 😊"
+                    })
+                    st.session_state.file_processed = True
+            else:
+                st.info("⚠️ The file has already been processed.")
 
         # Afficher les messages précédents
         for msg in st.session_state.get("messages", []):
@@ -202,26 +203,16 @@ def main():
             if not user_input.strip():
                 st.warning("❌ Please enter a valid question.")
                 return
-            
-            st.session_state["messages"].append({"role": "user", "content": user_input})
-            st.chat_message("user").write(user_input)
 
             # Vérifier les prérequis
             if st.session_state.vectorstore is None:
                 st.warning("⚠️ Vectorstore is not initialized. Please process a file first.")
                 return
 
-            with st.spinner("Recherche en cours..."):
-                if st.session_state.vectorstore is None:
-                    result = "⚠️ Aucun fichier n'a été traité pour le moment. Veuillez télécharger un fichier pour commencer."
-                else:
-                    if st.session_state.conversation is None:
-                        st.session_state.conversation = ConversationChainHandler.get_conversation_chain(
-                           st.session_state.vectorstore
-                    )
-                        
-                    result = st.session_state.conversation.run(user_input)
-    
+            if st.session_state.conversation is None:
+                st.session_state.conversation = ConversationChainHandler.get_conversation_chain(
+                    st.session_state.vectorstore
+                )
 
             # Ajouter l'entrée utilisateur à l'historique des messages
             st.session_state.messages.append({"role": "user", "content": user_input})
@@ -230,18 +221,18 @@ def main():
             # Ajouter la question utilisateur à l'historique
             st.session_state.chat_history.append({"role": "user", "content": user_input})
 
-            with st.spinner("Recherche en cours..."):
-                if st.session_state.vectorstore is None:
-                    result = "⚠️ Aucun fichier n'a été traité pour le moment. Veuillez télécharger un fichier pour commencer."
-                else:
-                    if st.session_state.conversation is None:
-                       st.session_state.conversation = ConversationChainHandler.get_conversation_chain(st.session_state.vectorstore)
-                
-               
-                result = st.session_state.conversation.run(user_input)
+            # Appeler la chaîne conversationnelle
+            with st.spinner("Searching in progress..."):
+                result = st.session_state.conversation.run({
+                    'question': user_input,
+                    'chat_history': st.session_state.chat_history
+                })
 
-            st.session_state["messages"].append({"role": "assistant", "content": result})
+            # Ajouter la réponse du chatbot à l'historique
+            st.session_state.messages.append({"role": "assistant", "content": result})
             st.chat_message("assistant").write(result)
+            st.session_state.chat_history.append({"role": "assistant", "content": result})
+
             # Ajouter l'entrée et la réponse au feedback
             st.session_state.feedback_history.append({
                 'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
