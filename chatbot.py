@@ -13,7 +13,7 @@ import pymupdf
 load_dotenv()
 
 
-"""class PDFHandler:
+class PDFHandler:
     @staticmethod
     def get_pdf_text(pdf_docs):
 
@@ -28,35 +28,8 @@ load_dotenv()
                         text += block.get("text", "") + "\n"
             
             doc.close()
-        return text.strip()"""
-
-class PDFHandler:
-    @staticmethod
-    def get_pdf_text(pdf_file):
-        """
-        Extrait le texte d'un fichier PDF en excluant les images et tableaux.
-        """
-        print(f"📂 PDFHandler.get_pdf_text reçoit : {type(pdf_file)}")  # Vérifier ce qui est reçu
-        
-        text = ""
-        try:
-            # Vérifier si c'est un fichier binaire (BytesIO) ou un chemin
-            if isinstance(pdf_file, BytesIO):
-                doc = pymupdf.open(stream=pdf_file, filetype="pdf")
-            else:
-                doc = pymupdf.open(pdf_file)  # Fichier local sous forme de chemin
-
-            for page in doc:
-                blocks = page.get_text("dict")["blocks"]
-                for block in blocks:
-                    if block.get("type", "") == 0:  # Vérifier que c'est bien du texte
-                        text += block.get("text", "") + "\n"
-
-            doc.close()
-        except Exception as e:
-            print(f"❌ Erreur lors de la lecture du PDF: {e}")
-
         return text.strip()
+
 
 
 

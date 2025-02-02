@@ -13,60 +13,70 @@ from email.mime.base import MIMEBase
 from email import encoders
 import os
 import unicodedata
+#import spacy
+#from spacy.lang.fr.stop_words import STOP_WORDS
+#nlp = spacy.load("fr_core_news_sm")
 
 
 
-def extract_text_simple(uploaded_file):
+
+def extract_text_simple(pdf_path):
     """
-    Extrait le texte d'un PDF en mode simple en excluant les images et tableaux.
+    Extrait le texte d'un PDF en mode simple.
     """
-    raw_text = PDFHandler.get_pdf_text(uploaded_file)
+    # Utiliser PDFHandler pour centraliser l'extraction de texte
+    raw_text = PDFHandler.get_pdf_text([pdf_path])  # PDFHandler attend une liste de fichiers
     cleaned_text = clean_text(raw_text)
     return cleaned_text
 
 
-def extract_f_double(uploaded_file):
+def extract_f_double(pdf_path):
     """
-    Extrait et structure le texte pour un PDF à double format en excluant les images et tableaux.
+    Extrait et structure le texte pour un PDF à double format.
     """
-    raw_text = PDFHandler.get_pdf_text(uploaded_file)
+    # Utiliser PDFHandler pour extraire le texte
+    raw_text = PDFHandler.get_pdf_text([pdf_path])
     all_pages_text = []
-    
+
     for text in raw_text.split("\n\n"):  # Supposer que les pages sont séparées par "\n\n"
         structured_text = analyze_page_structure(clean_text(text))
         all_pages_text.append(structured_text)
-    
+
     return '\n'.join(all_pages_text)
 
 
-def detect_pdf_format(uploaded_file):
+def detect_pdf_format(pdf_path):
     try:
-        if isinstance(uploaded_file, BytesIO):
-            doc = pymupdf.open(stream=uploaded_file, filetype="pdf")
-        else:
-            doc = pymupdf.open(uploaded_file)
-        
-        page = doc.load_page(0)
+        # Ouvrir le PDF
+        doc = pymupdf.open(pdf_path)
+        page = doc.load_page(0)  # Analyse uniquement la première page
+
+        # Extraction du texte avec la méthode des blocs
         blocs = page.get_text("dict")["blocks"]
-        
+
+        # Analyse des positions des blocs
         left_count = 0
         right_count = 0
-        middle_x = page.rect.width / 2
-        
+        middle_x = page.rect.width / 2  # Trouve le milieu de la page
+
         for block in blocs:
-            if "bbox" in block and block.get("type", "") == 0:
-                x0, _, x1, _ = block["bbox"]
-                if x1 <= middle_x:
+            if "bbox" in block:  # Vérifie si le bloc contient des coordonnées
+                x0, _, x1, _ = block["bbox"]  # Coordonnées du bloc
+
+                # Compte les blocs à gauche et à droite
+                if x1 <= middle_x:  # Tout le bloc est à gauche
                     left_count += 1
-                elif x0 >= middle_x:
+                elif x0 >= middle_x:  # Tout le bloc est à droite
                     right_count += 1
-        
-        doc.close()
-        
+
+        doc.close()  # Ferme le document après l'analyse
+
+        # Vérifie si les colonnes sont équilibrées
         if left_count > 0 and right_count > 0:
-            return "double"
+            return "double"  # Deux colonnes détectées
         else:
-            return "simple"
+            return "simple"  # Une seule colonne détectée
+
     except Exception as e:
         return f"Erreur lors de la détection : {e}"
     
