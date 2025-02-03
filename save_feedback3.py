@@ -1,24 +1,17 @@
-
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))  # Add the parent directory to the Python path
-import streamlit as st
-from streamlit_feedback import streamlit_feedback
-import csv
 import datetime
 import uuid
-from pathlib import Path
-from load_and_prepare2 import extract_text_simple, extract_text_simple, detect_pdf_format, extract_f_double,ErrorEmail,FeedbackEmail
-from langchain.schema import Document
+import csv
 import logging
-import os
+from pathlib import Path
 from time import time
-from chatbot import  TextChunkHandler, VectorStoreHandler, ConversationChainHandler
 from dotenv import load_dotenv
-
-
-
-
+import streamlit as st
+from streamlit_feedback import streamlit_feedback
+from load_and_prepare2 import extract_text_simple, detect_pdf_format, extract_f_double, ErrorEmail, FeedbackEmail
+from langchain.schema import Document
+from chatbot import TextChunkHandler, VectorStoreHandler, ConversationChainHandler
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -37,14 +30,13 @@ def initialize_session_state():
     if 'file_processed' not in st.session_state:
         st.session_state.file_processed = False
     if 'chat_history' not in st.session_state:
-        st.session_state.chat_history = []  # Historique des conversations
+        st.session_state.chat_history = []  
     if 'uploaded_file' not in st.session_state:
         st.session_state.uploaded_file = None
     if 'file_uploader_key' not in st.session_state:
         st.session_state.file_uploader_key = 0
     if 'conversation' not in st.session_state:
-        st.session_state.conversation = None  # Initialiser à None pour éviter l'erreur
-
+        st.session_state.conversation = None  
 
 
 def reset_conversation():
@@ -71,30 +63,39 @@ def reset_conversation():
     st.session_state.conversation = None  
 
 
-def process_pdf_file(file_bytes):
+def process_pdf_file(file_path):
     """
     Traite un fichier PDF, extrait le texte, génère des chunks,
     et crée un magasin de vecteurs.
     """
-    print(f"📂 process_pdf_file : {type(file_bytes)}")  # Vérifier le type de file_bytes
-    
     # Détecter le format du PDF
-    format_type = detect_pdf_format(file_bytes)  
-    logger.info(f"📝 Format detected. : {format_type}")
+    format_type = detect_pdf_format(file_path)
+    logger.info(f"📝 Format detected: {format_type}")
+
+    if format_type == "empty":
+        raise ValueError("Le PDF est vide ou ne contient aucune page.")
 
     # Extraire le texte selon le format détecté
     if format_type == "double":
-        text = extract_f_double(file_bytes)
+        text = extract_f_double(file_path)
     else:
-        text = extract_text_simple(file_bytes)
+        text = extract_text_simple(file_path)
+
+    # Vérifier que du texte a bien été extrait
+    if not text.strip():
+        raise ValueError("Aucun texte n'a pu être extrait du PDF. Veuillez vérifier le fichier.")
 
     text_chunks = TextChunkHandler.get_text_chunks(text)
-    logger.info(f" {len(text_chunks)} Chunks generated from the text.")
+    if not text_chunks:
+        raise ValueError("Le découpage du texte a échoué : aucun chunk n'a été généré.")
+
+    logger.info(f"{len(text_chunks)} chunks générés à partir du texte.")
 
     vectorstore = VectorStoreHandler.get_vectorstore(text_chunks)
-    logger.info(" Vectors successfully created.")
+    logger.info("Vecteurs créés avec succès.")
 
     return vectorstore
+
 
 def save_uploaded_file(uploaded_file):
     data_dir = os.path.join(os.getcwd(), 'data')
@@ -105,8 +106,6 @@ def save_uploaded_file(uploaded_file):
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
     return file_path
-
-
 
 
 def save_feedback():
@@ -138,12 +137,13 @@ def save_feedback():
 
     return filepath  
 
+
 def fbcb(response):
     """
     Ajoute un feedback structuré à l'historique.
     """
     if not st.session_state.feedback_history:
-        st.warning("No interaction available to add feedback.")
+        st.warning("Aucune interaction disponible pour ajouter un feedback.")
         return
 
     # Structuration du feedback
@@ -153,11 +153,8 @@ def fbcb(response):
         "valeur": "Positive" if response.get("score") == "👍" else ("Négative" if response.get("score") == "👎" else "NaN"),
         "text": response.get("text", "").strip() if response.get("text") else "NAN"
     }
-
-    
     last_entry.update({'feedback': feedback})
-    st.success("Feedback successfully added to history!")
-
+    st.success("Feedback ajouté à l'historique avec succès !")
 
 
 def main():
@@ -192,7 +189,7 @@ def main():
                     })
                     st.session_state.file_processed = True
             else:
-                st.info("⚠️ The file has already been processed.")
+                st.info("⚠️ Le fichier a déjà été traité.")
 
         # Afficher les messages précédents
         for msg in st.session_state.get("messages", []):
@@ -201,12 +198,12 @@ def main():
         # Entrée utilisateur
         if user_input := st.chat_input("Ask your legal question..."):
             if not user_input.strip():
-                st.warning("❌ Please enter a valid question.")
+                st.warning("❌ Veuillez saisir une question valide.")
                 return
 
             # Vérifier les prérequis
             if st.session_state.vectorstore is None:
-                st.warning("⚠️ Vectorstore is not initialized. Please process a file first.")
+                st.warning("⚠️ Le vectorstore n'est pas initialisé. Veuillez d'abord traiter un fichier.")
                 return
 
             if st.session_state.conversation is None:
@@ -253,9 +250,10 @@ def main():
 
     except Exception as e:
         error_message = f"Erreur : {e}"
-        st.error("The operation failed because either your connection or upload the right PDF file.")
+        st.error("L'opération a échoué. Vérifiez votre connexion ou assurez-vous d'avoir uploadé le bon fichier PDF.")
         email_sender = ErrorEmail("afaf83542@gmail.com", "gwsh qfmz shxb cdam")
         email_sender.send_error_email("afaf.matouk@dxc.com", error_message)
+
 
 if __name__ == "__main__":
     main()
