@@ -16,24 +16,13 @@ load_dotenv()
 class PDFHandler:
     @staticmethod
     def get_pdf_text(pdf_docs):
-
         text = ""
         for pdf in pdf_docs:
-            doc = pymupdf.open(pdf)
-            
-            for page in doc:
-                blocks = page.get_text("dict")["blocks"]
-                for block in blocks:
-                    if "image" not in block and "table" not in block:
-                        text += block.get("text", "") + "\n"
-            
-            doc.close()
-        return text.strip()
-
-
-
-
-
+            with open(pdf, "rb") as f:
+                pdf_reader = PdfReader(f)
+                for page in pdf_reader.pages:
+                    text += page.extract_text() or "" 
+        return text
 
 class TextChunkHandler:
     @staticmethod
