@@ -46,46 +46,61 @@ class VectorStoreHandler:
         vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
         return vectorstore
 
-
-def summarize_chunks(chunks, summary_max_tokens=300):
-    summarizer = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, max_tokens=summary_max_tokens)
-    full_text = "\n".join(chunks)
-    prompt = (
-        """
-        Voici le contenu extrait de parties d'un document. Résume ce texte de manière concise 
-        en ne dépassant pas {summary_max_tokens} tokens, tout en conservant les informations essentielles :\n\n
-        {full_text}\n\nRésumé """
-    )
-    
-    summary = summarizer(prompt)
-    return summary
-
-class SummarizingRetriever:
-    def __init__(self, base_retriever, summary_max_tokens=200):
-        self.base_retriever = base_retriever
-        self.summary_max_tokens = summary_max_tokens
-
-    def get_relevant_documents(self, query):
-        docs = self.base_retriever.get_relevant_documents(query)
-        chunks = [doc.page_content for doc in docs]
-        summary = summarize_chunks(chunks, summary_max_tokens=self.summary_max_tokens)
-        return [Document(page_content=summary, metadata={})]
-
 class ConversationChainHandler:
     @staticmethod
-    def get_conversation_chain(vectorstore):
+    def get_conversation_chain(vectorstore, summary_max_tokens=200):
+        """
+        Initialise une chaîne de conversation en limitant le contexte via un résumé des 3 chunks récupérés.
+        """
+        # Initialisation du modèle LLM
         llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
+
+        # Initialisation de la mémoire conversationnelle
         memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
-        base_retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
-        summarizing_retriever = SummarizingRetriever(base_retriever, summary_max_tokens=200)
+
+        # Définition du retriever pour récupérer les 3 chunks les plus pertinents
+        retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+
+        # Récupération des documents pertinents (3 chunks)
+        retrieved_docs = retriever.get_relevant_documents("")
+        chunks = [doc.page_content for doc in retrieved_docs]
+
+        # Vérification si des chunks ont été trouvés
+        if chunks:
+            summary_context = ConversationChainHandler.summarize_chunks(chunks, summary_max_tokens)
+            system_message = {"role": "system", "content": f"Résumé du contexte pertinent : {summary_context}"}
+            memory.chat_memory.add_message(system_message)
+
+        # Création de la chaîne de conversation
         conversation_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
-            retriever=summarizing_retriever,
+            retriever=retriever,
             memory=memory
         )
+
         return conversation_chain
 
+    @staticmethod
+    def summarize_chunks(chunks, summary_max_tokens=200):
+        """
+        Résume les 3 chunks sélectionnés pour réduire leur taille avant de les envoyer au modèle.
+        """
+        from langchain.chat_models import ChatOpenAI
+        
+        summarizer = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, max_tokens=summary_max_tokens)
 
+        # Concaténer les 3 chunks
+        full_text = "\n".join(chunks)
+
+        # Construire l'invite pour le résumé
+        prompt = (
+            "Voici le contenu extrait d'un document juridique. Résume ce texte de manière concise "
+            f"en ne dépassant pas {summary_max_tokens} tokens, tout en conservant les informations essentielles :\n\n"
+            f"{full_text}\n\nRésumé :"
+        )
+
+        summary = summarizer(prompt)
+        return summary
 
 
 class UserInputHandler:
