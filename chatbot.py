@@ -49,7 +49,8 @@ class VectorStoreHandler:
 class ConversationChainHandler:
     @staticmethod
     def get_conversation_chain(vectorstore):
-        llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
+        # llm = ChatOpenAI(model="gpt-3.5-turbo GPT-4o gpt-4o", temperature=0.7)
         memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
         retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
         conversation_chain = ConversationalRetrievalChain.from_llm(
