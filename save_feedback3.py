@@ -11,7 +11,7 @@ import streamlit as st
 from streamlit_feedback import streamlit_feedback
 from load_and_prepare2 import extract_text_simple, detect_pdf_format, extract_f_double, ErrorEmail, FeedbackEmail
 from langchain.schema import Document
-from chatbot import TextChunkHandler, VectorStoreHandler, ConversationChainHandler
+from chatbot import TextChunkHandler, VectorStoreHandler, ConversationChainHandler,TextSummarizer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -66,31 +66,28 @@ def reset_conversation():
 def process_pdf_file(file_path):
     """
     Traite un fichier PDF, extrait le texte, génère des chunks,
-    et crée un magasin de vecteurs.
+    et crée un magasin de vecteurs en intégrant le résumé.
     """
-    # Détecter le format du PDF
     format_type = detect_pdf_format(file_path)
     logger.info(f"📝 Format detected: {format_type}")
 
     if format_type == "empty":
         raise ValueError("Le PDF est vide ou ne contient aucune page.")
 
-    # Extraire le texte selon le format détecté
     if format_type == "double":
         text = extract_f_double(file_path)
     else:
         text = extract_text_simple(file_path)
 
-    # Vérifier que du texte a bien été extrait
     if not text.strip():
         raise ValueError("Aucun texte n'a pu être extrait du PDF. Veuillez vérifier le fichier.")
-
-    text_chunks = TextChunkHandler.get_text_chunks(text)
+    
+    summarized_text = TextSummarizer.summarize_text(text)
+    text_chunks = TextChunkHandler.get_text_chunks(summarized_text)
     if not text_chunks:
         raise ValueError("Le découpage du texte a échoué : aucun chunk n'a été généré.")
 
-    logger.info(f"{len(text_chunks)} chunks générés à partir du texte.")
-
+    logger.info(f"{len(text_chunks)} chunks générés à partir du texte résumé.")
     vectorstore = VectorStoreHandler.get_vectorstore(text_chunks)
     logger.info("Vecteurs créés avec succès.")
 

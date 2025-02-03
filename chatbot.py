@@ -25,6 +25,16 @@ class PDFHandler:
         return text
 
 
+class TextSummarizer:
+    @staticmethod
+    def summarize_text(text):
+        llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.3)
+        summary_prompt = "Résume ce texte de manière concise : " + text[:4000]  
+        response = llm.predict(summary_prompt)
+        return response
+
+
+
 class TextChunkHandler:
     @staticmethod
     def get_text_chunks(text):
@@ -59,6 +69,17 @@ class ConversationChainHandler:
         )
         return conversation_chain
     
+
+
+"""class PDFProcessor:
+    @staticmethod
+    def process_pdf(pdf_docs):
+        text = PDFHandler.get_pdf_text(pdf_docs)
+        summarized_text = TextSummarizer.summarize_text(text)
+        text_chunks = TextChunkHandler.get_text_chunks(summarized_text)
+        vectorstore = VectorStoreHandler.get_vectorstore(text_chunks)
+        return vectorstore
+"""
 
     
 
