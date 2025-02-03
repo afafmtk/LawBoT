@@ -11,7 +11,8 @@ import streamlit as st
 from streamlit_feedback import streamlit_feedback
 from load_and_prepare2 import extract_text_simple, detect_pdf_format, extract_f_double, ErrorEmail, FeedbackEmail
 from langchain.schema import Document
-from chatbot import TextChunkHandler, VectorStoreHandler, ConversationChainHandler,TextSummarizer
+from chatbot import TextChunkHandler, VectorStoreHandler, ConversationChainHandler
+from chatbot import TextSummarizer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
