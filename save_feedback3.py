@@ -11,8 +11,7 @@ import streamlit as st
 from streamlit_feedback import streamlit_feedback
 from load_and_prepare2 import extract_text_simple, detect_pdf_format, extract_f_double, ErrorEmail, FeedbackEmail
 from langchain.schema import Document
-from chatbot import TextChunkHandler, VectorStoreHandler, ConversationChainHandler
-from chatbot import TextSummarizer
+from chatbot import get_text_chunks, get_vectorstore, get_conversation_chain
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -47,7 +46,7 @@ def reset_conversation():
     """
     if len(st.session_state.feedback_history) > 0:
         feedback_file = save_feedback()
-        recipient_email = "afaf.matouk@dxc.com"
+        recipient_email = "anass.mezroui@dxc.com"
 
         # Envoi du feedback par email
         feedback_sender = FeedbackEmail("afaf83542@gmail.com", "gwsh qfmz shxb cdam")
@@ -83,13 +82,13 @@ def process_pdf_file(file_path):
     if not text.strip():
         raise ValueError("Aucun texte n'a pu être extrait du PDF. Veuillez vérifier le fichier.")
     
-    summarized_text = TextSummarizer.summarize_text(text)
-    text_chunks = TextChunkHandler.get_text_chunks(summarized_text)
+    # summarized_text = summarize_text(text)
+    text_chunks = get_text_chunks(text)
     if not text_chunks:
         raise ValueError("Le découpage du texte a échoué : aucun chunk n'a été généré.")
 
     logger.info(f"{len(text_chunks)} chunks générés à partir du texte résumé.")
-    vectorstore = VectorStoreHandler.get_vectorstore(text_chunks)
+    vectorstore = get_vectorstore(text_chunks)
     logger.info("Vecteurs créés avec succès.")
 
     return vectorstore
@@ -205,7 +204,7 @@ def main():
                 return
 
             if st.session_state.conversation is None:
-                st.session_state.conversation = ConversationChainHandler.get_conversation_chain(
+                st.session_state.conversation = get_conversation_chain(
                     st.session_state.vectorstore
                 )
 
@@ -247,10 +246,12 @@ def main():
                 fbcb(feedback_response)
 
     except Exception as e:
+        print(e)
         error_message = f"Erreur : {e}"
         st.error("L'opération a échoué. Vérifiez votre connexion ou assurez-vous d'avoir uploadé le bon fichier PDF.")
         email_sender = ErrorEmail("afaf83542@gmail.com", "gwsh qfmz shxb cdam")
-        email_sender.send_error_email("afaf.matouk@dxc.com", error_message)
+        # email_sender.send_error_email("anass.mezroui@dxc.com", error_message)
+        raise e
 
 
 if __name__ == "__main__":
