@@ -7,50 +7,47 @@ import logging
 from pathlib import Path
 from time import time
 from dotenv import load_dotenv
+
 import streamlit as st
 from streamlit_feedback import streamlit_feedback
-from load_and_prepare2 import extract_text_simple, detect_pdf_format, extract_f_double, ErrorEmail, FeedbackEmail
-from langchain.schema import Document
-from chatbot import get_text_chunks, get_vectorstore, get_conversation_chain
 
+from utils import save_uploaded_file
+from dataprep import extract_text_simple, detect_pdf_format, extract_f_double, extract_text_chunks_from_pdf, get_text_chunks
+from email_utils import EmailSender
+from chat_utils import get_vectorstore, get_conversation_chain
+
+load_dotenv()
+email_sender = EmailSender(os.getenv('SENDER_EMAIL_ADDRESS'), os.getenv('EMAIL_PASSWORD'))
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger(__name__)
 
+
+emoji2str ={"👍": "Positive" ,
+            "👎": "Négative"}
 
 def initialize_session_state():
     """
     Initialise les variables de session nécessaires pour Streamlit.
     """
-    if 'session_id' not in st.session_state:
-        st.session_state.session_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    if 'messages' not in st.session_state:
-        st.session_state.messages = []
-    if 'feedback_history' not in st.session_state:
-        st.session_state.feedback_history = []
-    if 'file_processed' not in st.session_state:
-        st.session_state.file_processed = False
-    if 'chat_history' not in st.session_state:
-        st.session_state.chat_history = []  
-    if 'uploaded_file' not in st.session_state:
-        st.session_state.uploaded_file = None
-    if 'file_uploader_key' not in st.session_state:
-        st.session_state.file_uploader_key = 0
-    if 'conversation' not in st.session_state:
-        st.session_state.conversation = None  
+    st.session_state.setdefault('session_id', datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+    st.session_state.setdefault('messages', [])
+    st.session_state.setdefault('feedback_history', [])
+    st.session_state.setdefault('file_processed', False)
+    st.session_state.setdefault('chat_history', [])  
+    st.session_state.setdefault('uploaded_file', None)
+    st.session_state.setdefault('file_uploader_key', 0)
+    st.session_state.setdefault('conversation', None)  
 
 
-def reset_conversation():
+def reset_conversation(email_sender):
     """
     Réinitialise l'état de la session pour démarrer une nouvelle conversation,
     tout en sauvegardant les feedbacks et en envoyant un email si nécessaire.
     """
     if len(st.session_state.feedback_history) > 0:
         feedback_file = save_feedback()
-        recipient_email = "anass.mezroui@dxc.com"
 
         # Envoi du feedback par email
-        feedback_sender = FeedbackEmail("afaf83542@gmail.com", "gwsh qfmz shxb cdam")
-        feedback_sender.send_feedback_email(recipient_email, feedback_file)
+        email_sender.send_feedback_email(os.getenv('RECIP_EMAIL_ADDRESS'), feedback_file)
 
         st.success(f"Email envoyé avec succès au client avec le fichier {feedback_file.name} !")
 
@@ -61,48 +58,6 @@ def reset_conversation():
     st.session_state.uploaded_file = None
     st.session_state.file_uploader_key += 1
     st.session_state.conversation = None  
-
-
-def process_pdf_file(file_path):
-    """
-    Traite un fichier PDF, extrait le texte, génère des chunks,
-    et crée un magasin de vecteurs en intégrant le résumé.
-    """
-    format_type = detect_pdf_format(file_path)
-    logger.info(f"📝 Format detected: {format_type}")
-
-    if format_type == "empty":
-        raise ValueError("Le PDF est vide ou ne contient aucune page.")
-
-    if format_type == "double":
-        text = extract_f_double(file_path)
-    else:
-        text = extract_text_simple(file_path)
-
-    if not text.strip():
-        raise ValueError("Aucun texte n'a pu être extrait du PDF. Veuillez vérifier le fichier.")
-    
-    # summarized_text = summarize_text(text)
-    text_chunks = get_text_chunks(text)
-    if not text_chunks:
-        raise ValueError("Le découpage du texte a échoué : aucun chunk n'a été généré.")
-
-    logger.info(f"{len(text_chunks)} chunks générés à partir du texte résumé.")
-    vectorstore = get_vectorstore(text_chunks)
-    logger.info("Vecteurs créés avec succès.")
-
-    return vectorstore
-
-
-def save_uploaded_file(uploaded_file):
-    data_dir = os.path.join(os.getcwd(), 'data')
-    os.makedirs(data_dir, exist_ok=True)
-
-    file_path = os.path.join(data_dir, uploaded_file.name)
-    if not os.path.exists(file_path):
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-    return file_path
 
 
 def save_feedback():
@@ -135,7 +90,7 @@ def save_feedback():
     return filepath  
 
 
-def fbcb(response):
+def structure_feedback(response):
     """
     Ajoute un feedback structuré à l'historique.
     """
@@ -147,7 +102,7 @@ def fbcb(response):
     last_entry = st.session_state.feedback_history[-1]
     feedback = {
         "score": response.get("score"),
-        "valeur": "Positive" if response.get("score") == "👍" else ("Négative" if response.get("score") == "👎" else "NaN"),
+        "valeur": emoji2str.get(response.get("score"), 'Nan'),
         "text": response.get("text", "").strip() if response.get("text") else "NAN"
     }
     last_entry.update({'feedback': feedback})
@@ -156,8 +111,8 @@ def fbcb(response):
 
 def main():
     try:
-        load_dotenv()
         initialize_session_state()
+
         st.set_page_config(layout="wide", page_title="LAW_GPT DXC CDG")
 
         st.markdown("<h1 style='color: purple;'><i class='fas fa-balance-scale'></i> LAWGPT </h1>", unsafe_allow_html=True)
@@ -165,7 +120,7 @@ def main():
 
         # Réinitialiser la conversation
         if st.sidebar.button("🔄 New conversation"):
-            reset_conversation()
+            reset_conversation(email_sender)
             st.rerun()
 
         # Téléchargement de fichier
@@ -178,7 +133,9 @@ def main():
             if not st.session_state.file_processed:
                 file_path = save_uploaded_file(uploaded_file)
                 with st.spinner("Processing PDF file..."):
-                    vectorstore = process_pdf_file(file_path)
+                    text_chunks = extract_text_chunks_from_pdf(file_path)
+                    vectorstore = get_vectorstore(text_chunks)
+
                     st.session_state.vectorstore = vectorstore
                     st.session_state.messages.append({
                         "role": "assistant",
@@ -243,15 +200,13 @@ def main():
                 key=f"fb_{len(st.session_state.feedback_history)}",
             )
             if feedback_response:
-                fbcb(feedback_response)
+                structure_feedback(feedback_response)
 
     except Exception as e:
         print(e)
         error_message = f"Erreur : {e}"
         st.error("L'opération a échoué. Vérifiez votre connexion ou assurez-vous d'avoir uploadé le bon fichier PDF.")
-        email_sender = ErrorEmail("afaf83542@gmail.com", "gwsh qfmz shxb cdam")
-        # email_sender.send_error_email("anass.mezroui@dxc.com", error_message)
-        raise e
+        email_sender.send_error_email(os.getenv('RECIP_EMAIL_ADDRESS'), error_message)
 
 
 if __name__ == "__main__":
